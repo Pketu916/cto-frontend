@@ -95,7 +95,7 @@ const ServiceBookingForm = ({
   const [gpsLocation, setGpsLocation] = useState(null);
   const { showSuccess, showError } = useToast();
   const { emitBookingCreated } = useSocket();
-  const { user } = useAuth();
+  const { user, userType } = useAuth();
 
   console.log("ServiceBookingForm service:", service);
   console.log("ServiceBookingForm service ID:", service?._id);
@@ -270,6 +270,15 @@ const ServiceBookingForm = ({
             message: "Booking created successfully!",
           });
         }
+
+        // Redirect to appropriate dashboard after successful booking
+        const dashboardPath =
+          userType === "provider"
+            ? "/provider/dashboard"
+            : userType === "admin"
+            ? "/admin/dashboard"
+            : "/user/dashboard";
+        navigate(dashboardPath);
       } else {
         showError(response.message || "Failed to create booking");
       }
