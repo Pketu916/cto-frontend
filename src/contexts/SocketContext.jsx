@@ -36,7 +36,9 @@ export const SocketProvider = ({ children }) => {
     if (user) {
       // Connect to Socket.IO server
       const newSocket = io("http://localhost:5000", {
-        transports: ["websocket"],
+        transports: ["websocket", "polling"], // Add polling as fallback
+        timeout: 20000,
+        forceNew: true,
       });
 
       newSocket.on("connect", () => {
@@ -97,7 +99,23 @@ export const SocketProvider = ({ children }) => {
       // Listen for connection errors
       newSocket.on("connect_error", (error) => {
         console.error("Socket connection error:", error);
-        showError("Connection error. Please refresh the page.");
+        // Don't show error toast for connection issues, just log them
+        console.log("WebSocket connection failed, will retry automatically");
+      });
+
+      // Listen for reconnection attempts
+      newSocket.on("reconnect_attempt", (attemptNumber) => {
+        console.log(`🔄 Reconnection attempt ${attemptNumber}`);
+      });
+
+      newSocket.on("reconnect", (attemptNumber) => {
+        console.log(`✅ Reconnected after ${attemptNumber} attempts`);
+        setIsConnected(true);
+      });
+
+      newSocket.on("reconnect_failed", () => {
+        console.log("❌ Failed to reconnect to server");
+        setIsConnected(false);
       });
 
       setSocket(newSocket);

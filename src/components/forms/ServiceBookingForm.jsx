@@ -113,10 +113,22 @@ const ServiceBookingForm = ({
   const { emitBookingCreated } = useSocket();
   const { user, userType } = useAuth();
 
-  console.log("ServiceBookingForm service:", service);
-  console.log("ServiceBookingForm service ID:", service?.id);
-  console.log("Current errors:", errors);
-  console.log("Current step:", step);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    watch,
+    setValue,
+    trigger,
+  } = useForm({
+    resolver: yupResolver(schema),
+  });
+
+  // Debug logging (remove in production)
+  // console.log("ServiceBookingForm service:", service);
+  // console.log("ServiceBookingForm service ID:", service?.id);
+  // console.log("Current errors:", errors);
+  // console.log("Current step:", step);
 
   // Enhanced GPS Location functions with permission handling
   const getCurrentLocation = async () => {
@@ -271,17 +283,6 @@ const ServiceBookingForm = ({
       );
     }
   };
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    watch,
-    setValue,
-    trigger,
-  } = useForm({
-    resolver: yupResolver(schema),
-  });
 
   // Mock available slots - in real app, this would come from API
   const availableSlots = [
@@ -470,10 +471,11 @@ const ServiceBookingForm = ({
     if (stepFields.length > 0) {
       const hasFieldErrors = stepFields.some((field) => errors[field]);
       if (hasFieldErrors) {
-        console.log(
-          `Step ${stepNumber} has field errors:`,
-          stepFields.filter((field) => errors[field])
-        );
+        // Debug logging (remove in production)
+        // console.log(
+        //   `Step ${stepNumber} has field errors:`,
+        //   stepFields.filter((field) => errors[field])
+        // );
         return false;
       }
     }
@@ -482,9 +484,10 @@ const ServiceBookingForm = ({
     if (stepNumber === 2) {
       const isValid = selectedDate && selectedTime;
       if (!isValid) {
-        console.log(
-          `Step 2 validation failed - Date: ${selectedDate}, Time: ${selectedTime}`
-        );
+        // Debug logging (remove in production)
+        // console.log(
+        //   `Step 2 validation failed - Date: ${selectedDate}, Time: ${selectedTime}`
+        // );
       }
       return isValid;
     }
@@ -563,49 +566,17 @@ const ServiceBookingForm = ({
                 Patient Information
               </h3>
 
-              {/* Debug: Test validation button */}
-              <div className="mb-4 p-2 bg-yellow-50 border border-yellow-200 rounded">
-                <button
-                  type="button"
-                  onClick={() => trigger(getStepFields(1))}
-                  className="text-sm bg-yellow-200 hover:bg-yellow-300 px-3 py-1 rounded mr-2"
-                >
-                  Test Step 1 Validation
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    // Clear all step 1 fields to trigger errors
-                    setValue("patientName", "");
-                    setValue("patientAge", "");
-                    setValue("patientPhone", "");
-                    setValue("emergencyContact", "");
-                    setValue("houseDetails", "");
-                    setValue("address", "");
-                    setValue("city", "");
-                    setValue("state", "");
-                    setValue("pincode", "");
-                    trigger(getStepFields(1));
-                  }}
-                  className="text-sm bg-red-200 hover:bg-red-300 px-3 py-1 rounded"
-                >
-                  Clear Fields (Test Errors)
-                </button>
-                <span className="ml-2 text-xs text-gray-600">
-                  Current errors: {Object.keys(errors).length}
-                </span>
-              </div>
-
               {/* Step 1 Error Summary */}
               {(() => {
                 const step1Errors = getStepFields(1).filter(
                   (field) => errors[field]
                 );
-                console.log("Step 1 errors check:", {
-                  step1Errors,
-                  allErrors: errors,
-                  step1Fields: getStepFields(1),
-                });
+                // Debug logging (remove in production)
+                // console.log("Step 1 errors check:", {
+                //   step1Errors,
+                //   allErrors: errors,
+                //   step1Fields: getStepFields(1),
+                // });
                 return (
                   step1Errors.length > 0 && (
                     <div className="bg-red-50 border border-red-200 rounded-lg p-4">
