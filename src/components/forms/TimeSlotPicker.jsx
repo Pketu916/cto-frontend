@@ -51,9 +51,11 @@ const TimeSlotPicker = ({
           `https://cto-backend.onrender.com/api/bookings/available-slots?date=${formattedDate}&serviceId=${serviceId}`
         );
 
-        //   const response = await fetch(
+        // const response = await fetch(
         //   `http://localhost:5000/api/bookings/available-slots?date=${formattedDate}&serviceId=${serviceId}`
         // );
+
+
 
         console.log("Available slots response:", response.status);
 
@@ -108,9 +110,22 @@ const TimeSlotPicker = ({
           <button
             onClick={() => navigateWeek(-1)}
             disabled={disabled}
-            className="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center px-3 py-2 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            ← Previous Week
+            <svg
+              className="w-4 h-4 mr-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
+            </svg>
+            Previous Week
           </button>
           <span className="text-sm font-medium text-gray-600">
             {format(currentWeek, "MMM d")} -{" "}
@@ -119,9 +134,22 @@ const TimeSlotPicker = ({
           <button
             onClick={() => navigateWeek(1)}
             disabled={disabled}
-            className="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center px-3 py-2 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            Next Week →
+            Next Week
+            <svg
+              className="w-4 h-4 ml-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
           </button>
         </div>
 
@@ -196,6 +224,7 @@ const TimeSlotPicker = ({
 
                 return (
                   <button
+                    type="button"
                     key={time}
                     onClick={() =>
                       isAvailable && !disabled && onTimeChange(time)

@@ -35,7 +35,7 @@ export const SocketProvider = ({ children }) => {
   useEffect(() => {
     if (user) {
       // Connect to Socket.IO server
-      const newSocket = io("https://cto-backend.onrender.com", {
+      const newSocket = io("http://localhost:5000", {
         transports: ["websocket"],
       });
 

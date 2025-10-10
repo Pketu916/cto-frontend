@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Footer } from "../components/navigation";
-import { PageContainer, CTASection } from "../components/layout";
-import { Card, Button, Input } from "../components/ui";
+import { PageContainer, CTASection, HeroSection } from "../components/layout";
+import { Card, Button, Input, FAQSection } from "../components/ui";
 import { useToast } from "../contexts/ToastContext";
 
 const Contact = () => {
@@ -154,21 +154,14 @@ const Contact = () => {
 
   return (
     <>
-      <PageContainer>
+      <PageContainer maxWidth="full" padding="none">
         {/* Hero Section */}
-        <section className="py-20 bg-gradient-to-br from-blue-50 to-indigo-100">
-          <div className="max-w-6xl mx-auto px-6 text-center">
-            <h1 className="text-5xl font-bold text-gray-900 mb-6">
-              Contact Us
-            </h1>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              Need help with your healthcare needs? Our expert team is always
-              ready to assist you. Whether you have questions about our
-              services, need medical consultation, or want to partner with us -
-              we're here to help.
-            </p>
-          </div>
-        </section>
+        <HeroSection
+          title="Contact Us"
+          subtitle="Need help with your healthcare needs? Our expert team is always ready to assist you. Whether you have questions about our services, need medical consultation, or want to partner with us - we're here to help."
+          image="https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=800&h=600&fit=crop"
+          imageAlt="Healthcare support team"
+        />
 
         {/* Contact Info Cards */}
         <section className="py-16">
@@ -438,60 +431,42 @@ const Contact = () => {
         </section>
 
         {/* FAQ Section */}
-        <section className="py-16">
-          <div className="max-w-4xl mx-auto px-6">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                Frequently Asked Questions
-              </h2>
-              <p className="text-gray-600">
-                Find answers to common questions here
-              </p>
-            </div>
-
-            <div className="space-y-6">
-              {[
-                {
-                  question: "What healthcare services do you provide?",
-                  answer:
-                    "We provide telehealth consultations, home nursing care, patient transport, diagnostic imaging, medical equipment rental, and rehabilitation services.",
-                },
-                {
-                  question: "How quickly can I get medical assistance?",
-                  answer:
-                    "For urgent cases, we provide immediate assistance within 30 minutes. For routine consultations, appointments can be scheduled within 24 hours.",
-                },
-                {
-                  question: "How do I get support?",
-                  answer:
-                    "We provide 24/7 medical support through phone, email, WhatsApp, and our mobile app. Our medical team is always available to assist you.",
-                },
-                {
-                  question: "How is pricing calculated?",
-                  answer:
-                    "Pricing depends on the type of service, duration, and complexity. We offer competitive rates and transparent pricing with no hidden costs.",
-                },
-                {
-                  question: "Are your services available across India?",
-                  answer:
-                    "Yes, our services are available in major cities across India. We are continuously expanding to cover more locations.",
-                },
-                {
-                  question: "How do I book a service?",
-                  answer:
-                    "You can book services through our website, mobile app, or by calling our helpline. Our booking process is simple and user-friendly.",
-                },
-              ].map((faq, index) => (
-                <Card key={index} className="p-6">
-                  <h3 className="text-lg font-bold text-gray-900 mb-3">
-                    {faq.question}
-                  </h3>
-                  <p className="text-gray-600">{faq.answer}</p>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </section>
+        <FAQSection
+          title="Frequently Asked Questions"
+          subtitle="Find answers to common questions here"
+          faqs={[
+            {
+              question: "What healthcare services do you provide?",
+              answer:
+                "We provide telehealth consultations, home nursing care, patient transport, diagnostic imaging, medical equipment rental, and rehabilitation services.",
+            },
+            {
+              question: "How quickly can I get medical assistance?",
+              answer:
+                "For urgent cases, we provide immediate assistance within 30 minutes. For routine consultations, appointments can be scheduled within 24 hours.",
+            },
+            {
+              question: "How do I get support?",
+              answer:
+                "We provide 24/7 medical support through phone, email, WhatsApp, and our mobile app. Our medical team is always available to assist you.",
+            },
+            {
+              question: "How is pricing calculated?",
+              answer:
+                "Pricing depends on the type of service, duration, and complexity. We offer competitive rates and transparent pricing with no hidden costs.",
+            },
+            {
+              question: "Are your services available across India?",
+              answer:
+                "Yes, our services are available in major cities across India. We are continuously expanding to cover more locations.",
+            },
+            {
+              question: "How do I book a service?",
+              answer:
+                "You can book services through our website, mobile app, or by calling our helpline. Our booking process is simple and user-friendly.",
+            },
+          ]}
+        />
       </PageContainer>
 
       {/* CTA Section */}

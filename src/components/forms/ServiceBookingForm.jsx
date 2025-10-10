@@ -62,19 +62,34 @@ const INDIAN_STATES = [
 ];
 
 const schema = yup.object({
-  patientName: yup.string().required("Patient name is required"),
+  patientName: yup.string().required("Please enter the patient's name"),
   patientAge: yup
     .number()
-    .min(0, "Age must be positive")
-    .required("Patient age is required"),
-  patientPhone: yup.string().required("Patient phone is required"),
-  houseDetails: yup.string().required("House/Flat number and name is required"),
-  address: yup.string().required("Address is required"),
-  city: yup.string().required("City is required"),
-  state: yup.string().required("State is required"),
-  pincode: yup.string().required("Pincode is required"),
-  symptoms: yup.string().required("Please describe symptoms or requirements"),
-  emergencyContact: yup.string().required("Emergency contact is required"),
+    .typeError("Please enter a valid age (numbers only)")
+    .min(1, "Age must be at least 1 year")
+    .max(120, "Please enter a valid age")
+    .required("Please enter the patient's age"),
+  patientPhone: yup
+    .string()
+    .matches(/^[0-9]{10}$/, "Please enter a valid 10-digit phone number")
+    .required("Please enter the patient's phone number"),
+  houseDetails: yup
+    .string()
+    .required("Please enter house/flat number and name"),
+  address: yup.string().required("Please enter the complete address"),
+  city: yup.string().required("Please enter the city name"),
+  state: yup.string().required("Please select the state"),
+  pincode: yup.string().required("Please enter the pincode"),
+  symptoms: yup
+    .string()
+    .required("Please describe the patient's symptoms or requirements"),
+  emergencyContact: yup
+    .string()
+    .matches(
+      /^[0-9]{10}$/,
+      "Please enter a valid 10-digit emergency contact number"
+    )
+    .required("Please enter an emergency contact number"),
   notes: yup.string(),
 });
 
@@ -93,80 +108,168 @@ const ServiceBookingForm = ({
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [locationError, setLocationError] = useState("");
   const [gpsLocation, setGpsLocation] = useState(null);
+  const [stepErrors, setStepErrors] = useState({});
   const { showSuccess, showError } = useToast();
   const { emitBookingCreated } = useSocket();
   const { user, userType } = useAuth();
 
   console.log("ServiceBookingForm service:", service);
-  console.log("ServiceBookingForm service ID:", service?._id);
+  console.log("ServiceBookingForm service ID:", service?.id);
+  console.log("Current errors:", errors);
+  console.log("Current step:", step);
 
-  // GPS Location functions
-  const getCurrentLocation = () => {
+  // Enhanced GPS Location functions with permission handling
+  const getCurrentLocation = async () => {
     if (!navigator.geolocation) {
-      setLocationError("Geolocation is not supported by this browser.");
+      setLocationError(
+        "Your browser doesn't support location detection. Please enter your address manually."
+      );
       return;
     }
 
     setIsGettingLocation(true);
     setLocationError("");
 
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        try {
-          const { latitude, longitude } = position.coords;
-          setGpsLocation({ latitude, longitude });
+    try {
+      // Check if location permission is already granted
+      const permission = await navigator.permissions?.query({
+        name: "geolocation",
+      });
 
-          // Reverse geocoding to get address details
-          const response = await fetch(
-            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
-          );
-          const data = await response.json();
-
-          if (data && data.localityInfo) {
-            // Auto-fill form with GPS data
-            setValue(
-              "address",
-              `${data.principalSubdivision || ""} ${data.locality || ""}`.trim()
-            );
-            setValue("city", data.city || data.locality || "");
-            setValue("state", data.principalSubdivision || "");
-            setValue("pincode", data.postcode || "");
-
-            showSuccess("Location detected and form filled automatically!");
-          }
-        } catch (error) {
-          console.error("Error getting location details:", error);
-          setLocationError("Could not get address details from GPS location.");
-        } finally {
-          setIsGettingLocation(false);
-        }
-      },
-      (error) => {
-        console.error("Error getting location:", error);
-        let errorMessage = "Unable to get your location. ";
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            errorMessage += "Please allow location access and try again.";
-            break;
-          case error.POSITION_UNAVAILABLE:
-            errorMessage += "Location information is unavailable.";
-            break;
-          case error.TIMEOUT:
-            errorMessage += "Location request timed out.";
-            break;
-          default:
-            errorMessage += "An unknown error occurred.";
-            break;
-        }
-        setLocationError(errorMessage);
+      if (permission?.state === "denied") {
+        setLocationError(
+          "Location access is blocked. Please allow location access in your browser settings or enter your address manually."
+        );
         setIsGettingLocation(false);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 300000,
+        return;
       }
-    );
+
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          try {
+            const { latitude, longitude } = position.coords;
+            setGpsLocation({ latitude, longitude });
+
+            // Reverse geocoding to get address details
+            const response = await fetch(
+              `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
+            );
+            const data = await response.json();
+
+            if (data && data.localityInfo) {
+              // Auto-fill form with GPS data
+              setValue(
+                "address",
+                `${data.principalSubdivision || ""} ${
+                  data.locality || ""
+                }`.trim()
+              );
+              setValue("city", data.city || data.locality || "");
+              setValue("state", data.principalSubdivision || "");
+              setValue("pincode", data.postcode || "");
+
+              showSuccess("Location detected and form filled automatically!");
+            }
+          } catch (error) {
+            console.error("Error getting location details:", error);
+            setLocationError(
+              "Could not get address details from your location. Please enter your address manually."
+            );
+          } finally {
+            setIsGettingLocation(false);
+          }
+        },
+        (error) => {
+          console.error("Error getting location:", error);
+          let errorMessage = "Unable to get your location. ";
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage +=
+                "Please allow location access and try again. Click the location icon in your browser's address bar to enable location access, or enter your address manually.";
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMessage += "Location information is unavailable.";
+              break;
+            case error.TIMEOUT:
+              errorMessage += "Location request timed out.";
+              break;
+            default:
+              errorMessage += "An unknown error occurred.";
+              break;
+          }
+          setLocationError(errorMessage);
+          setIsGettingLocation(false);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 300000,
+        }
+      );
+    } catch (error) {
+      console.error("Permission check error:", error);
+      // Fallback to direct geolocation call if permission API is not available
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          try {
+            const { latitude, longitude } = position.coords;
+            setGpsLocation({ latitude, longitude });
+
+            const response = await fetch(
+              `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
+            );
+            const data = await response.json();
+
+            if (data && data.localityInfo) {
+              setValue(
+                "address",
+                `${data.principalSubdivision || ""} ${
+                  data.locality || ""
+                }`.trim()
+              );
+              setValue("city", data.city || data.locality || "");
+              setValue("state", data.principalSubdivision || "");
+              setValue("pincode", data.postcode || "");
+
+              showSuccess("Location detected and form filled automatically!");
+            }
+          } catch (error) {
+            console.error("Error getting location details:", error);
+            setLocationError(
+              "Could not get address details from your location. Please enter your address manually."
+            );
+          } finally {
+            setIsGettingLocation(false);
+          }
+        },
+        (error) => {
+          console.error("Error getting location:", error);
+          let errorMessage = "Unable to get your location. ";
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage +=
+                "Please allow location access and try again. Click the location icon in your browser's address bar to enable location access, or enter your address manually.";
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMessage += "Location information is unavailable.";
+              break;
+            case error.TIMEOUT:
+              errorMessage += "Location request timed out.";
+              break;
+            default:
+              errorMessage += "An unknown error occurred.";
+              break;
+          }
+          setLocationError(errorMessage);
+          setIsGettingLocation(false);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 300000,
+        }
+      );
+    }
   };
 
   const {
@@ -175,6 +278,7 @@ const ServiceBookingForm = ({
     formState: { errors },
     watch,
     setValue,
+    trigger,
   } = useForm({
     resolver: yupResolver(schema),
   });
@@ -213,7 +317,18 @@ const ServiceBookingForm = ({
       return;
     }
 
+    // Check if all steps are valid before submission
+    const firstInvalidStep = [1, 2, 3].find((stepNum) => !isStepValid(stepNum));
+    if (firstInvalidStep) {
+      setStep(firstInvalidStep);
+      showError(
+        `Please complete step ${firstInvalidStep} before submitting the form.`
+      );
+      return;
+    }
+
     if (!selectedDate || !selectedTime) {
+      setStep(2); // Navigate to schedule step
       showError("Please select date and time");
       return;
     }
@@ -222,7 +337,7 @@ const ServiceBookingForm = ({
 
     try {
       const bookingData = {
-        serviceId: service?._id,
+        serviceId: service?.id,
         selectedDate: format(selectedDate, "yyyy-MM-dd"),
         selectedTimeSlot: selectedTime,
         patientName: data.patientName,
@@ -290,26 +405,102 @@ const ServiceBookingForm = ({
     }
   };
 
-  const nextStep = () => {
-    if (step === 1) {
-      // Validate basic info
-      const basicFields = [
-        "patientName",
-        "patientAge",
-        "patientPhone",
-        "houseDetails",
-        "address",
-        "city",
-        "pincode",
-      ];
-      const basicData = watch(basicFields);
+  const nextStep = async () => {
+    // Validate current step before proceeding
+    const currentStepFields = getStepFields(step);
+    let isValid = true;
 
-      // if (basicFields.some((field) => !basicData[field])) {
-      //   alert("Please fill all required fields");
-      //   return;
-      // }
+    // Validate form fields for current step
+    if (currentStepFields.length > 0) {
+      isValid = await trigger(currentStepFields);
     }
-    setStep(step + 1);
+
+    // Additional validation for step 2 (date/time selection)
+    if (step === 2) {
+      if (!selectedDate) {
+        showError("Please select a date for your appointment.");
+        return;
+      }
+      if (!selectedTime) {
+        showError("Please select a time slot for your appointment.");
+        return;
+      }
+    }
+
+    if (isValid) {
+      setStep(step + 1);
+    } else {
+      // Show error message for current step
+      showError(
+        `Please complete all required fields in step ${step} before proceeding.`
+      );
+    }
+  };
+
+  // Get fields that need validation for each step
+  const getStepFields = (stepNumber) => {
+    switch (stepNumber) {
+      case 1:
+        return [
+          "patientName",
+          "patientAge",
+          "patientPhone",
+          "emergencyContact",
+          "houseDetails",
+          "address",
+          "city",
+          "state",
+          "pincode",
+        ];
+      case 2:
+        return []; // Date and time validation is handled separately
+      case 3:
+        return ["symptoms"];
+      default:
+        return [];
+    }
+  };
+
+  // Check if a step is valid
+  const isStepValid = (stepNumber) => {
+    const stepFields = getStepFields(stepNumber);
+    const formData = watch();
+
+    // Check form field validation
+    if (stepFields.length > 0) {
+      const hasFieldErrors = stepFields.some((field) => errors[field]);
+      if (hasFieldErrors) {
+        console.log(
+          `Step ${stepNumber} has field errors:`,
+          stepFields.filter((field) => errors[field])
+        );
+        return false;
+      }
+    }
+
+    // Additional validation for step 2
+    if (stepNumber === 2) {
+      const isValid = selectedDate && selectedTime;
+      if (!isValid) {
+        console.log(
+          `Step 2 validation failed - Date: ${selectedDate}, Time: ${selectedTime}`
+        );
+      }
+      return isValid;
+    }
+
+    return true;
+  };
+
+  // Get step validation status
+  const getStepStatus = (stepNumber) => {
+    if (stepNumber < step) {
+      return isStepValid(stepNumber) ? "completed" : "error";
+    } else if (stepNumber === step) {
+      return "current";
+    } else {
+      return "pending";
+    }
   };
 
   const prevStep = () => {
@@ -361,60 +552,6 @@ const ServiceBookingForm = ({
       </div>
 
       {/* Progress Steps */}
-      <div className="px-6 py-4 border-b">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div
-              className={`flex items-center ${
-                step >= 1 ? "text-blue-600" : "text-gray-400"
-              }`}
-            >
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                  step >= 1
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-200 text-gray-600"
-                }`}
-              >
-                1
-              </div>
-              <span className="ml-2 text-sm font-medium">Basic Info</span>
-            </div>
-            <div
-              className={`flex items-center ${
-                step >= 2 ? "text-blue-600" : "text-gray-400"
-              }`}
-            >
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                  step >= 2
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-200 text-gray-600"
-                }`}
-              >
-                2
-              </div>
-              <span className="ml-2 text-sm font-medium">Schedule</span>
-            </div>
-            <div
-              className={`flex items-center ${
-                step >= 3 ? "text-blue-600" : "text-gray-400"
-              }`}
-            >
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                  step >= 3
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-200 text-gray-600"
-                }`}
-              >
-                3
-              </div>
-              <span className="ml-2 text-sm font-medium">Confirm</span>
-            </div>
-          </div>
-        </div>
-      </div>
 
       <form onSubmit={handleSubmit(handleFormSubmit)}>
         <div className="p-6">
@@ -425,6 +562,80 @@ const ServiceBookingForm = ({
                 <User className="w-5 h-5 mr-2 text-blue-600" />
                 Patient Information
               </h3>
+
+              {/* Debug: Test validation button */}
+              <div className="mb-4 p-2 bg-yellow-50 border border-yellow-200 rounded">
+                <button
+                  type="button"
+                  onClick={() => trigger(getStepFields(1))}
+                  className="text-sm bg-yellow-200 hover:bg-yellow-300 px-3 py-1 rounded mr-2"
+                >
+                  Test Step 1 Validation
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Clear all step 1 fields to trigger errors
+                    setValue("patientName", "");
+                    setValue("patientAge", "");
+                    setValue("patientPhone", "");
+                    setValue("emergencyContact", "");
+                    setValue("houseDetails", "");
+                    setValue("address", "");
+                    setValue("city", "");
+                    setValue("state", "");
+                    setValue("pincode", "");
+                    trigger(getStepFields(1));
+                  }}
+                  className="text-sm bg-red-200 hover:bg-red-300 px-3 py-1 rounded"
+                >
+                  Clear Fields (Test Errors)
+                </button>
+                <span className="ml-2 text-xs text-gray-600">
+                  Current errors: {Object.keys(errors).length}
+                </span>
+              </div>
+
+              {/* Step 1 Error Summary */}
+              {(() => {
+                const step1Errors = getStepFields(1).filter(
+                  (field) => errors[field]
+                );
+                console.log("Step 1 errors check:", {
+                  step1Errors,
+                  allErrors: errors,
+                  step1Fields: getStepFields(1),
+                });
+                return (
+                  step1Errors.length > 0 && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                      <div className="flex items-start">
+                        <svg
+                          className="w-5 h-5 text-red-400 mt-0.5 mr-3"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        <div>
+                          <h4 className="text-sm font-medium text-red-800">
+                            Please fix the following errors:
+                          </h4>
+                          <ul className="mt-2 text-sm text-red-700 list-disc list-inside">
+                            {step1Errors.map((field) => (
+                              <li key={field}>{errors[field].message}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                );
+              })()}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Input
@@ -510,23 +721,24 @@ const ServiceBookingForm = ({
                       variant="outline"
                       onClick={getCurrentLocation}
                       disabled={isGettingLocation}
-                      className="flex items-center"
+                      className="flex items-center bg-blue-50 hover:bg-blue-100 border-blue-300 text-blue-700"
                     >
                       <Navigation className="w-4 h-4 mr-2" />
                       {isGettingLocation
                         ? "Getting Location..."
                         : "Get My Location"}
                     </Button>
+
                     {locationError && (
-                      <p className="text-red-600 text-sm mt-2">
-                        {locationError}
-                      </p>
+                      <div className="mt-2 text-sm text-red-600">
+                        ⚠️ {locationError}
+                      </div>
                     )}
+
                     {gpsLocation && (
-                      <p className="text-green-600 text-sm mt-2">
-                        ✓ Location detected: {gpsLocation.latitude.toFixed(4)},{" "}
-                        {gpsLocation.longitude.toFixed(4)}
-                      </p>
+                      <div className="mt-2 text-sm text-green-600">
+                        ✓ Location detected and address filled automatically
+                      </div>
                     )}
                   </div>
                 )}
@@ -610,12 +822,44 @@ const ServiceBookingForm = ({
                 Schedule Your Service
               </h3>
 
+              {/* Step 2 Error Summary */}
+              {(!selectedDate || !selectedTime) && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <div className="flex items-start">
+                    <svg
+                      className="w-5 h-5 text-red-400 mt-0.5 mr-3"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    <div>
+                      <h4 className="text-sm font-medium text-red-800">
+                        Please complete the following:
+                      </h4>
+                      <ul className="mt-2 text-sm text-red-700 list-disc list-inside">
+                        {!selectedDate && (
+                          <li>Select a date for your appointment</li>
+                        )}
+                        {!selectedTime && (
+                          <li>Select a time slot for your appointment</li>
+                        )}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <TimeSlotPicker
                 selectedDate={selectedDate}
                 onDateChange={setSelectedDate}
                 selectedTime={selectedTime}
                 onTimeChange={setSelectedTime}
-                serviceId={service?._id}
+                serviceId={service?.id}
                 availableSlots={availableSlots}
               />
             </div>
@@ -628,6 +872,33 @@ const ServiceBookingForm = ({
                 <FileText className="w-5 h-5 mr-2 text-blue-600" />
                 Additional Information
               </h3>
+
+              {/* Step 3 Error Summary */}
+              {errors.symptoms && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <div className="flex items-start">
+                    <svg
+                      className="w-5 h-5 text-red-400 mt-0.5 mr-3"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    <div>
+                      <h4 className="text-sm font-medium text-red-800">
+                        Please fix the following error:
+                      </h4>
+                      <ul className="mt-2 text-sm text-red-700 list-disc list-inside">
+                        <li>{errors.symptoms.message}</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <Input
                 label="Symptoms / Requirements"
@@ -684,6 +955,89 @@ const ServiceBookingForm = ({
           )}
         </div>
 
+        {/* Step Progress Indicator - Top */}
+        <div className="px-6 py-4 bg-blue-50 border-b">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              {[1, 2, 3].map((stepNumber) => {
+                const status = getStepStatus(stepNumber);
+                const isCompleted = status === "completed";
+                const isCurrent = status === "current";
+                const hasError = status === "error";
+
+                return (
+                  <div key={stepNumber} className="flex items-center">
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
+                        hasError
+                          ? "bg-red-500 text-white"
+                          : isCompleted
+                          ? "bg-green-500 text-white"
+                          : isCurrent
+                          ? "bg-blue-600 text-white"
+                          : "bg-gray-300 text-gray-600"
+                      }`}
+                    >
+                      {hasError ? (
+                        <svg
+                          className="w-4 h-4"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      ) : isCompleted ? (
+                        <svg
+                          className="w-4 h-4"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      ) : (
+                        stepNumber
+                      )}
+                    </div>
+                    <span
+                      className={`ml-2 text-sm font-medium transition-colors ${
+                        hasError
+                          ? "text-red-600"
+                          : isCompleted
+                          ? "text-green-600"
+                          : isCurrent
+                          ? "text-blue-600"
+                          : "text-gray-500"
+                      }`}
+                    >
+                      {stepNumber === 1
+                        ? "Basic Info"
+                        : stepNumber === 2
+                        ? "Schedule"
+                        : "Confirm"}
+                    </span>
+                    {stepNumber < 3 && (
+                      <div
+                        className={`w-8 h-0.5 ml-4 transition-colors ${
+                          isCompleted ? "bg-green-500" : "bg-gray-300"
+                        }`}
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="text-sm text-gray-600">Step {step} of 3</div>
+          </div>
+        </div>
+
         {/* Footer Actions */}
         <div className="px-6 py-4 bg-gray-50 rounded-b-lg flex justify-between">
           <div>
@@ -694,6 +1048,7 @@ const ServiceBookingForm = ({
                 onClick={prevStep}
                 disabled={isLoading}
               >
+                <ArrowLeft className="w-4 h-4 mr-2" />
                 Previous
               </Button>
             )}
@@ -701,8 +1056,29 @@ const ServiceBookingForm = ({
 
           <div>
             {step < 3 ? (
-              <Button type="button" onClick={nextStep} disabled={isLoading}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={nextStep}
+                disabled={isLoading || !isStepValid(step)}
+                className={
+                  !isStepValid(step) ? "opacity-50 cursor-not-allowed" : ""
+                }
+              >
                 Next
+                <svg
+                  className="w-4 h-4 ml-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
               </Button>
             ) : (
               <Button

@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Footer } from "../components/navigation";
-import { PageContainer } from "../components/layout";
-import { Card, Button } from "../components/ui";
+import { PageContainer, HeroSection } from "../components/layout";
+import { Card, Button, FAQSection } from "../components/ui";
+import { CTASection } from "../components/layout";
 
 const Pricing = () => {
   const [billingCycle, setBillingCycle] = useState("monthly");
@@ -187,20 +188,19 @@ const Pricing = () => {
 
   return (
     <>
-      <PageContainer>
+      <PageContainer maxWidth="full" padding="none">
         {/* Hero Section */}
-        <section className="py-20 bg-gradient-to-br from-blue-50 to-indigo-100">
-          <div className="max-w-6xl mx-auto px-6 text-center">
-            <h1 className="text-5xl font-bold text-gray-900 mb-6">
-              Simple & Transparent Pricing
-            </h1>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed mb-8">
-              Choose the perfect healthcare plan for you and your family. All
-              plans include free trial and money-back guarantee.
-            </p>
+        <HeroSection
+          title="Simple & Transparent Pricing"
+          subtitle="Choose the perfect healthcare plan for you and your family. All plans include free trial and money-back guarantee."
+          image="https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=800&h=600&fit=crop"
+          imageAlt="Healthcare pricing illustration"
+        />
 
-            {/* Billing Toggle */}
-            <div className="flex items-center justify-center mb-8">
+        {/* Billing Toggle */}
+        <section className="py-8 bg-gray-50">
+          <div className="max-w-6xl mx-auto px-6">
+            <div className="flex items-center justify-center">
               <span
                 className={`mr-3 ${
                   billingCycle === "monthly"
@@ -415,54 +415,13 @@ const Pricing = () => {
         </section>
 
         {/* FAQ Section */}
-        <section className="py-16">
-          <div className="max-w-4xl mx-auto px-6">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                Frequently Asked Questions
-              </h2>
-              <p className="text-gray-600">
-                Common questions about our healthcare pricing and plans
-              </p>
-            </div>
+        <FAQSection
+          title="Frequently Asked Questions"
+          subtitle="Common questions about our healthcare pricing and plans"
+          faqs={faqs}
+        />
 
-            <div className="space-y-6">
-              {faqs.map((faq, index) => (
-                <Card key={index} className="p-6">
-                  <h3 className="text-lg font-bold text-gray-900 mb-3">
-                    {faq.question}
-                  </h3>
-                  <p className="text-gray-600">{faq.answer}</p>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* CTA Section */}
-        <section className="py-16 bg-blue-600 text-white">
-          <div className="max-w-4xl mx-auto px-6 text-center">
-            <h2 className="text-3xl font-bold mb-4">Ready to Get Started?</h2>
-            <p className="text-xl mb-8 opacity-90">
-              Join thousands of patients who trust CTO India for their
-              healthcare needs
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                to="/register/user"
-                className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors duration-200"
-              >
-                Start Free Trial
-              </Link>
-              <Link
-                to="/contact"
-                className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors duration-200"
-              >
-                Talk to Sales
-              </Link>
-            </div>
-          </div>
-        </section>
+        <CTASection />
       </PageContainer>
       <Footer />
     </>

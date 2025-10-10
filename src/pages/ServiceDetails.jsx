@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Button, Icon, Badge } from "../components/ui";
+import { Button, Icon, Badge, FAQSection } from "../components/ui";
 import { HeroSection, CTASection } from "../components/layout";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
@@ -257,31 +257,15 @@ const ServiceDetails = () => {
 
         {/* FAQ Section */}
         {service.faq && service.faq.length > 0 && (
-          <section className="mb-16">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                Frequently Asked Questions
-              </h2>
-              <p className="text-lg text-gray-600">
-                Get answers to common questions about this service
-              </p>
-            </div>
-            <div className="max-w-4xl mx-auto">
-              <div className="space-y-6">
-                {service.faq.map((item, index) => (
-                  <div
-                    key={`${service.id}-faq-${index}`}
-                    className="bg-white p-6 rounded-xl shadow-sm"
-                  >
-                    <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                      {item.q}
-                    </h3>
-                    <p className="text-gray-600 leading-relaxed">{item.a}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
+          <FAQSection
+            title="Frequently Asked Questions"
+            subtitle="Get answers to common questions about this service"
+            faqs={service.faq.map((item) => ({
+              question: item.q,
+              answer: item.a,
+            }))}
+            className="mb-16"
+          />
         )}
       </div>
 

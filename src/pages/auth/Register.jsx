@@ -17,7 +17,10 @@ const getSchema = (userType) => {
       .string()
       .email("Valid email required")
       .required("Email is required"),
-    phone: yup.string().required("Phone number is required"),
+    phone: yup
+      .string()
+      .matches(/^[0-9]{10}$/, "Phone number must be exactly 10 digits")
+      .required("Phone number is required"),
     password: yup
       .string()
       .min(6, "Password must be at least 6 characters")

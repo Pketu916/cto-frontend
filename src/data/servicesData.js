@@ -17,7 +17,7 @@ export const servicesData = [
       "Insurance claim processing",
     ],
     image:
-      "https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=600&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=600&h=400&fit=crop",
     estimatedPriceRange: "₹500 - ₹2,000 per consultation",
     faq: [
       {
@@ -53,9 +53,9 @@ export const servicesData = [
       "Professional medical interpretation",
     ],
     image:
-      "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=600&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=600&h=400&fit=crop",
     estimatedPriceRange: "₹1,500 - ₹5,000 per diagnostic session",
- 
+
     faq: [
       {
         q: "How accurate are digital diagnostic tools?",
@@ -90,9 +90,9 @@ export const servicesData = [
       "Caregiver training and education",
     ],
     image:
-      "https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=600&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=600&h=400&fit=crop",
     estimatedPriceRange: "₹2,000 - ₹8,000 per day",
- 
+
     faq: [
       {
         q: "What qualifications do your home care nurses have?",
@@ -129,7 +129,7 @@ export const servicesData = [
     image:
       "https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=600&h=400&fit=crop",
     estimatedPriceRange: "₹1,000 - ₹3,000 per delivery",
- 
+
     faq: [
       {
         q: "What types of medical supplies can drones deliver?",
@@ -166,7 +166,7 @@ export const servicesData = [
     image:
       "https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?w=600&h=400&fit=crop",
     estimatedPriceRange: "₹1,500 - ₹4,000 per employee assessment",
-  
+
     faq: [
       {
         q: "What industries do you serve for occupational health?",
@@ -203,7 +203,7 @@ export const servicesData = [
     image:
       "https://images.unsplash.com/photo-1559757175-0eb30cd8c063?w=600&h=400&fit=crop",
     estimatedPriceRange: "₹3,000 - ₹10,000 per month",
-   
+
     faq: [
       {
         q: "What chronic conditions do you monitor?",

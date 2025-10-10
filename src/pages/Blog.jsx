@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Footer } from "../components/navigation";
-import { PageContainer } from "../components/layout";
+import { PageContainer, HeroSection } from "../components/layout";
 import { Card, Button, Input } from "../components/ui";
+import { CTASection } from "../components/layout";
 
 const Blog = () => {
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -181,20 +182,14 @@ const Blog = () => {
 
   return (
     <>
-      <PageContainer>
+      <PageContainer maxWidth="full" padding="none">
         {/* Hero Section */}
-        <section className="py-20 bg-gradient-to-br from-blue-50 to-indigo-100">
-          <div className="max-w-6xl mx-auto px-6 text-center">
-            <h1 className="text-5xl font-bold text-gray-900 mb-6">
-              Healthcare Blog
-            </h1>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              Latest healthcare trends, medical insights, and wellness tips.
-              Explore the world of healthcare with our medical experts and stay
-              informed about your health.
-            </p>
-          </div>
-        </section>
+        <HeroSection
+          title="Healthcare Blog"
+          subtitle="Latest healthcare trends, medical insights, and wellness tips. Explore the world of healthcare with our medical experts and stay informed about your health."
+          image="https://images.unsplash.com/photo-1559757175-0eb30cd8c063?w=800&h=600&fit=crop"
+          imageAlt="Healthcare blog and medical insights"
+        />
 
         {/* Featured Posts */}
         {featuredPosts.length > 0 && (
@@ -405,29 +400,7 @@ const Blog = () => {
         </section>
 
         {/* CTA Section */}
-        <section className="py-16 bg-blue-600 text-white">
-          <div className="max-w-4xl mx-auto px-6 text-center">
-            <h2 className="text-3xl font-bold mb-4">Stay Updated</h2>
-            <p className="text-xl mb-8 opacity-90">
-              Follow our blog for the latest healthcare trends and medical
-              insights
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button
-                variant="outline"
-                className="bg-white text-blue-600 border-white hover:bg-gray-100"
-              >
-                Subscribe Newsletter
-              </Button>
-              <Button
-                variant="outline"
-                className="border-white text-white hover:bg-white hover:text-blue-600"
-              >
-                Follow on Social Media
-              </Button>
-            </div>
-          </div>
-        </section>
+        <CTASection />
       </PageContainer>
       <Footer />
     </>

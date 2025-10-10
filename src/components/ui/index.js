@@ -10,6 +10,8 @@ export { default as DatePicker } from "./DatePicker";
 export { default as Alert } from "./Alert";
 export { default as LoadingSpinner } from "./LoadingSpinner";
 export { default as Toast } from "./Toast";
+export { default as FAQItem } from "./FAQItem";
+export { default as FAQSection } from "./FAQSection";
 
 // Re-export organized components
 export * from "../auth";

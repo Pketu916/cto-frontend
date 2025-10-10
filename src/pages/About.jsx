@@ -1,7 +1,12 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { Footer } from "../components/navigation";
-import { PageContainer, PageHeader, CTASection } from "../components/layout";
+import {
+  PageContainer,
+  PageHeader,
+  CTASection,
+  HeroSection,
+} from "../components/layout";
 import { Card } from "../components/ui";
 
 const About = () => {
@@ -45,21 +50,14 @@ const About = () => {
 
   return (
     <>
-      <PageContainer>
+      <PageContainer maxWidth="full" padding="none">
         {/* Hero Section */}
-        <section className="py-20 bg-gradient-to-br from-blue-50 to-indigo-100">
-          <div className="max-w-6xl mx-auto px-6 text-center">
-            <h1 className="text-5xl font-bold text-gray-900 mb-6">
-              About CTO India
-            </h1>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              We are dedicated to revolutionizing healthcare delivery across
-              India through innovative technology solutions. Our mission is to
-              make quality healthcare accessible, affordable, and efficient for
-              every Indian citizen.
-            </p>
-          </div>
-        </section>
+        <HeroSection
+          title="About CTO India"
+          subtitle="We are dedicated to revolutionizing healthcare delivery across India through innovative technology solutions. Our mission is to make quality healthcare accessible, affordable, and efficient for every Indian citizen."
+          image="https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?w=800&h=600&fit=crop"
+          imageAlt="Healthcare technology team"
+        />
 
         {/* Mission & Vision */}
         <section className="py-16">
