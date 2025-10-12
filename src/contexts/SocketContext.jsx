@@ -35,7 +35,7 @@ export const SocketProvider = ({ children }) => {
   useEffect(() => {
     if (user) {
       // Connect to Socket.IO server
-      const newSocket = io("http://localhost:5000", {
+      const newSocket = io("http://https://cto-backend.onrender.com/api", {
         transports: ["websocket", "polling"], // Add polling as fallback
         timeout: 20000,
         forceNew: true,
