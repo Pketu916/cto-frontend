@@ -3,7 +3,7 @@ import React from "react";
 const Button = ({
   children,
   variant = "primary",
-  size = "md",
+  size = "sm",
   className = "",
   onClick,
   disabled = false,
@@ -12,20 +12,16 @@ const Button = ({
   ...props
 }) => {
   const baseClasses =
-    "font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 flex items-center justify-center";
+    "font-medium rounded-lg transition-colors duration-200 focus:outline-none flex items-center justify-center";
 
   const variants = {
-    primary:
-      "bg-[#a0f92d] text-[#012939] hover:bg-[#8de026] focus:ring-[#a0f92d]",
-    secondary:
-      "bg-[#a0f92d] text-[#012939] hover:bg-[#8de026] focus:ring-[#a0f92d]",
+    primary: "bg-secondary text-primary hover:bg-secondary/90",
+    secondary: "bg-secondary text-primary hover:bg-secondary/90",
     outline:
-      "border-2 border-[#a0f92d] text-[#012939] hover:bg-[#a0f92d] hover:text-[#012939] focus:ring-[#a0f92d]",
-    ghost: "text-[#012939] hover:bg-[#a0f92d]/10 focus:ring-[#a0f92d]",
-    danger:
-      "bg-[#a0f92d] text-[#012939] hover:bg-[#8de026] focus:ring-[#a0f92d]",
-    success:
-      "bg-[#a0f92d] text-[#012939] hover:bg-[#8de026] focus:ring-[#a0f92d]",
+      "border-2 border-secondary text-secondary hover:bg-secondary hover:text-primary",
+    ghost: "text-primary hover:bg-accent/10",
+    danger: "bg-secondary text-primary hover:bg-secondary/90",
+    success: "bg-secondary text-primary hover:bg-secondary/90",
   };
 
   const sizes = {

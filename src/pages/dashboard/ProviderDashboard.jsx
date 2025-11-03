@@ -107,9 +107,9 @@ const ProviderDashboard = () => {
                 <p className="text-sm font-medium text-gray-600">
                   Total Bookings
                 </p>
-                <p className="text-2xl font-bold text-gray-900">
+                <div className="text-2xl font-bold text-gray-900">
                   {loading ? <LoadingSpinner size="sm" /> : stats.totalBookings}
-                </p>
+                </div>
               </div>
             </div>
           </Card>
@@ -123,13 +123,13 @@ const ProviderDashboard = () => {
                 <p className="text-sm font-medium text-gray-600">
                   Completed Services
                 </p>
-                <p className="text-2xl font-bold text-gray-900">
+                <div className="text-2xl font-bold text-gray-900">
                   {loading ? (
                     <LoadingSpinner size="sm" />
                   ) : (
                     stats.completedBookings
                   )}
-                </p>
+                </div>
               </div>
             </div>
           </Card>
@@ -143,13 +143,13 @@ const ProviderDashboard = () => {
                 <p className="text-sm font-medium text-gray-600">
                   Active Bookings
                 </p>
-                <p className="text-2xl font-bold text-gray-900">
+                <div className="text-2xl font-bold text-gray-900">
                   {loading ? (
                     <LoadingSpinner size="sm" />
                   ) : (
                     stats.activeBookings
                   )}
-                </p>
+                </div>
               </div>
             </div>
           </Card>
@@ -210,11 +210,13 @@ const ProviderDashboard = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Specialization
+                      Service Type
                     </label>
                     <p className="text-gray-900">
-                      {user?.professionalInfo?.specialization ||
-                        "General Medicine"}
+                      {user?.professionalInfo?.specialization
+                        ?.replace(/-/g, " ")
+                        .replace(/\b\w/g, (l) => l.toUpperCase()) ||
+                        "Not specified"}
                     </p>
                   </div>
                   <div>

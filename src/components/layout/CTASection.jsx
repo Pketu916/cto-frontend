@@ -34,7 +34,7 @@ const CTASection = ({
   const satisfactionCounter = useCounter(95, 0, 1800, 800);
 
   const variants = {
-    default: "bg-[#012939]",
+    default: "bg-primary",
     blue: "bg-gradient-to-br from-blue-600 to-blue-800",
     green: "bg-gradient-to-br from-green-600 to-green-800",
     purple: "bg-gradient-to-br from-purple-600 to-purple-800",
@@ -72,7 +72,7 @@ const CTASection = ({
             <div className="text-center">
               <div
                 ref={patientsCounter.elementRef}
-                className="text-3xl md:text-4xl font-bold text-[#84ea00] mb-2"
+                className="text-3xl md:text-4xl font-bold text-secondary mb-2"
               >
                 {patientsCounter.count.toLocaleString()}+
               </div>
@@ -83,7 +83,7 @@ const CTASection = ({
             <div className="text-center">
               <div
                 ref={providersCounter.elementRef}
-                className="text-3xl md:text-4xl font-bold text-[#84ea00] mb-2"
+                className="text-3xl md:text-4xl font-bold text-secondary mb-2"
               >
                 {providersCounter.count}+
               </div>
@@ -94,7 +94,7 @@ const CTASection = ({
             <div className="text-center">
               <div
                 ref={supportCounter.elementRef}
-                className="text-3xl md:text-4xl font-bold text-[#84ea00] mb-2"
+                className="text-3xl md:text-4xl font-bold text-secondary mb-2"
               >
                 {supportCounter.count}/7
               </div>
@@ -105,7 +105,7 @@ const CTASection = ({
             <div className="text-center">
               <div
                 ref={satisfactionCounter.elementRef}
-                className="text-3xl md:text-4xl font-bold text-[#84ea00] mb-2"
+                className="text-3xl md:text-4xl font-bold text-secondary mb-2"
               >
                 {satisfactionCounter.count}%
               </div>
@@ -127,9 +127,9 @@ const CTASection = ({
                 {showServicesButton && (
                   <Button
                     variant="secondary"
-                    size="lg"
+                    size="sm"
                     onClick={handleServicesClick}
-                    className="bg-[#84ea00] text-[#012939] hover:bg-[#7dd300] font-semibold px-8 py-4 text-lg shadow-lg transition-colors duration-300 ease-in-out"
+                    className="bg-secondary text-primary hover:bg-secondary/90 font-semibold px-8 py-4 text-lg shadow-lg transition-colors duration-300 ease-in-out"
                   >
                     View Our Services
                   </Button>
@@ -139,9 +139,9 @@ const CTASection = ({
                 {showContactButton && (
                   <Button
                     variant="outline"
-                    size="lg"
+                    size="sm"
                     onClick={handleContactClick}
-                    className="border-2 border-[#84ea00] text-[#84ea00] hover:bg-[#84ea00] hover:text-[#012939] font-semibold px-8 py-4 text-lg transition-colors duration-300 ease-in-out"
+                    className="border-2 border-secondary text-secondary hover:bg-secondary hover:text-primary font-semibold px-8 py-4 text-lg transition-colors duration-300 ease-in-out"
                   >
                     Contact Us
                   </Button>

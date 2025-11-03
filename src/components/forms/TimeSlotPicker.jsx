@@ -47,13 +47,13 @@ const TimeSlotPicker = ({
         console.log("Formatted date:", formattedDate);
 
         // Call backend API to get available slots
-        const response = await fetch(
-          `https://cto-backend.onrender.com/api/bookings/available-slots?date=${formattedDate}&serviceId=${serviceId}`
-        );
-
         // const response = await fetch(
-        //   `http://localhost:5000/api/bookings/available-slots?date=${formattedDate}&serviceId=${serviceId}`
+        //   `https://cto-backend.onrender.com/api/bookings/available-slots?date=${formattedDate}&serviceId=${serviceId}`
         // );
+
+        const response = await fetch(
+          `http://localhost:5000/api/bookings/available-slots?date=${formattedDate}&serviceId=${serviceId}`
+        );
 
 
 

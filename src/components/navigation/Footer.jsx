@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 // local section renderer replacing removed sections/FooterSection
 import SocialIcons from "./SocialIcons";
 import FooterLink from "./FooterLink";
@@ -6,35 +7,34 @@ import Logo1 from "../../assets/Logo1.jpg";
 
 const footerData = {
   services: [
-    { text: "Telehealth", href: "/services" },
-    { text: "Home Care", href: "/services" },
-    { text: "Emergency Services", href: "/services" },
-    { text: "Diagnostics", href: "/services" },
-    { text: "Rehabilitation", href: "/services" },
-    { text: "Specialist Care", href: "/services" },
+    { text: "24/7 Care Response", href: "/services" },
+    { text: "Nursing & Clinical Care", href: "/services" },
+    { text: "Mental Health Support", href: "/services" },
+    { text: "Emergency Response", href: "/services" },
+    { text: "Pharmacy & Pathology", href: "/services" },
+    { text: "Clinical Team", href: "/clinical-team" },
   ],
   features: [
-    { text: "Appointment Booking", href: "/services" },
-    { text: "Health Records", href: "/profile" },
-    { text: "Emergency Response", href: "/contact" },
-    { text: "Medical Consultation", href: "/services" },
-    { text: "Health Monitoring", href: "/profile" },
-    { text: "Family Health", href: "/profile" },
+    { text: "How It Works", href: "/how-it-works" },
+    { text: "Membership Options", href: "/membership" },
+    { text: "Eligibility", href: "/eligibility" },
+    { text: "Online Booking", href: "/services" },
+    { text: "GPS Tracking", href: "/how-it-works" },
+    { text: "NDIS & My Aged Care", href: "/membership" },
   ],
   resources: [
-    { text: "Pricing", href: "/pricing" },
-    { text: "Blog", href: "/blog" },
+    { text: "Membership", href: "/membership" },
     { text: "FAQ", href: "/contact" },
     { text: "Support", href: "/contact" },
-    { text: "Health Tips", href: "/blog" },
-    { text: "Medical News", href: "/blog" },
+    { text: "Clinical Team", href: "/clinical-team" },
+    { text: "Eligibility", href: "/eligibility" },
   ],
   company: [
-    { text: "About Us", href: "/about" },
-    { text: "Our Team", href: "/about" },
+    { text: "About MyCRT", href: "/about" },
+    { text: "How It Works", href: "/how-it-works" },
     { text: "Contact", href: "/contact" },
-    { text: "Careers", href: "/contact" },
-    { text: "Partners", href: "/contact" },
+    { text: "Clinical Team", href: "/clinical-team" },
+    { text: "Membership", href: "/membership" },
   ],
   legal: [
     { text: "Privacy Policy", href: "/privacy" },
@@ -58,22 +58,27 @@ const FooterSection = ({ title, links }) => (
 
 const Footer = () => {
   return (
-    <footer className="bg-[#012939] text-white">
+    <footer className="bg-primary text-white">
       <div className="container mx-auto md:py-16 py-8">
         {/* Top Section */}
         <div className="flex flex-col lg:flex-row justify-between items-start gap-12 mb-8">
           {/* Logo & Contact & Social */}
           <div className="order-last lg:order-first flex-shrink-0 flex flex-col gap-2">
-            <div className="mb-1" >
-              <img
-                src={Logo1}
-                alt="CTO India Logo"
-                className="h-16 w-auto mr-3"
-              />
+            <div className="mb-1">
+              <Link to="/">
+                <img
+                  src={Logo1}
+                  alt="CTO India Logo"
+                  className="h-16 w-auto mr-3"
+                />
+              </Link>
             </div>
-            <p className="text-white font-medium m-0">+91-9876543210</p>
-            <FooterLink href="mailto:support@ctoindia.com">
-              support@ctoindia.com
+            <p className="text-white font-medium m-0">1800 40 30 50</p>
+            <FooterLink href="mailto:info@mycrt.com.au">
+              info@mycrt.com.au
+            </FooterLink>
+            <FooterLink href="https://www.mycrt.com.au" className="text-sm">
+              www.mycrt.com.au
             </FooterLink>
 
             {/* Social Icons */}
@@ -82,10 +87,7 @@ const Footer = () => {
 
           {/* Main Content Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 sm:gap-8 gap-4 order-first lg:order-last w-full">
-            <FooterSection
-              title="Healthcare Services"
-              links={footerData.services}
-            />
+            <FooterSection title="MyCRT Services" links={footerData.services} />
             <FooterSection title="Features" links={footerData.features} />
             <FooterSection title="Resources" links={footerData.resources} />
             <FooterSection title="Company" links={footerData.company} />
@@ -95,7 +97,9 @@ const Footer = () => {
         {/* Bottom Bar */}
         <div className="border-t border-gray-600 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center md:gap-4 gap-2">
-            <p className="text-gray-300 m-0">© CTO India 2025</p>
+            <p className="text-gray-300 m-0">
+              © MyCRT (My Care Response Team) 2025
+            </p>
             <div className="flex flex-wrap gap-6">
               {footerData.legal.map((link, index) => (
                 <FooterLink key={`legal-${index}`} href={link.href}>

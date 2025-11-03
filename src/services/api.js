@@ -2,8 +2,8 @@ import axios from "axios";
 
 // Create axios instance with base configuration
 const api = axios.create({
-  // baseURL: "http://localhost:5000/api",
-  baseURL: "https://cto-backend.onrender.com/api",
+  baseURL: "http://localhost:5000/api",
+  // baseURL: "https://cto-backend.onrender.com/api",
   headers: {
     "Content-Type": "application/json",
   },
@@ -41,14 +41,36 @@ api.interceptors.response.use(
       window.location.href = "/login";
     }
 
-    // Ensure error has proper structure
+    // Handle CORS and network errors
     if (!error.response) {
-      error.response = {
-        data: {
-          message: "Network error. Please check your connection.",
-          success: false,
-        },
-      };
+      // Check for CORS errors
+      if (error.message === "Network Error" || error.code === "ERR_NETWORK") {
+        const isCorsError =
+          error.message.includes("CORS") ||
+          error.message.includes("Access-Control");
+
+        error.response = {
+          data: {
+            message: isCorsError
+              ? "CORS Error: Backend server may not be running or CORS is not configured. Please ensure the backend server at http://localhost:5000 is running."
+              : "Network error: Cannot connect to the server. Please ensure the backend server is running on http://localhost:5000.",
+            success: false,
+            isNetworkError: true,
+            isCorsError: isCorsError,
+          },
+          status: 0,
+        };
+      } else {
+        error.response = {
+          data: {
+            message:
+              "Network error. Please check your connection and ensure the backend server is running.",
+            success: false,
+            isNetworkError: true,
+          },
+          status: 0,
+        };
+      }
     }
 
     return Promise.reject(error);
@@ -172,6 +194,62 @@ export const bookingsAPI = {
     const response = await api.get("/bookings/user");
     return response.data;
   },
+
+  // Add E-Signature
+  addESignature: async (bookingId, signature) => {
+    const response = await api.post(`/bookings/${bookingId}/e-signature`, {
+      signature,
+    });
+    return response.data;
+  },
+
+  // Update Provider Location
+  updateProviderLocation: async (bookingId, latitude, longitude) => {
+    const response = await api.put(`/bookings/${bookingId}/location`, {
+      latitude,
+      longitude,
+    });
+    return response.data;
+  },
+
+  // Get Invoice PDF
+  getInvoice: async (bookingId, includeSignature = false) => {
+    const response = await api.get(`/bookings/${bookingId}/invoice`, {
+      params: { includeSignature },
+      responseType: "blob",
+    });
+    return response.data;
+  },
+
+  // Get Booking Details (for tracking - public endpoint)
+  getBookingDetails: async (bookingId) => {
+    try {
+      // Try public tracking endpoint first (no auth required)
+      const baseURL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const response = await fetch(
+        `${baseURL}/api/bookings/tracking/${bookingId}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to fetch booking");
+      }
+      return data;
+    } catch (error) {
+      // Fallback to authenticated endpoint if tracking fails
+      try {
+        const response = await api.get(`/bookings/${bookingId}`);
+        return response.data;
+      } catch (err) {
+        throw error; // Return original error
+      }
+    }
+  },
 };
 
 // Users API
@@ -218,6 +296,30 @@ export const adminAPI = {
       status,
       notes,
     });
+    return response.data;
+  },
+
+  // Get All Users
+  getUsers: async (params = {}) => {
+    const response = await api.get("/admin/users", { params });
+    return response.data;
+  },
+
+  // Get User Details
+  getUserDetails: async (userId) => {
+    const response = await api.get(`/admin/users/${userId}`);
+    return response.data;
+  },
+
+  // Get All Bookings
+  getBookings: async (params = {}) => {
+    const response = await api.get("/admin/bookings", { params });
+    return response.data;
+  },
+
+  // Get Booking Details
+  getBookingDetails: async (bookingId) => {
+    const response = await api.get(`/admin/bookings/${bookingId}`);
     return response.data;
   },
 };

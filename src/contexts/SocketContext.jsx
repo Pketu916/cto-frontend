@@ -34,11 +34,43 @@ export const SocketProvider = ({ children }) => {
 
   useEffect(() => {
     if (user) {
+      // Get API base URL - sync with api.js configuration
+      const getSocketURL = () => {
+        // Check for environment variable first
+        const apiUrl = import.meta.env.VITE_API_URL;
+
+        if (apiUrl) {
+          // Remove /api suffix if present (socket.io connects to root, not /api)
+          const baseUrl = apiUrl.replace(/\/api\/?$/, "");
+          return baseUrl;
+        }
+
+        // Default to same base as api.js
+        // In development: http://localhost:5000
+        // In production: update this to match your production backend URL
+        const isProduction =
+          import.meta.env.PROD || window.location.hostname !== "localhost";
+
+        if (isProduction) {
+          return "https://cto-backend.onrender.com";
+        }
+
+        // Development default (matches api.js)
+        return "http://localhost:5000";
+      };
+
+      const socketURL = getSocketURL();
+      console.log("🔌 Connecting to Socket.IO server:", socketURL);
+
       // Connect to Socket.IO server
-      const newSocket = io("http://https://cto-backend.onrender.com/api", {
+      const newSocket = io(socketURL, {
         transports: ["websocket", "polling"], // Add polling as fallback
         timeout: 20000,
         forceNew: true,
+        reconnection: true,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        reconnectionAttempts: 5,
       });
 
       newSocket.on("connect", () => {
@@ -64,7 +96,9 @@ export const SocketProvider = ({ children }) => {
       newSocket.on("new-booking", (bookingData) => {
         console.log("📢 New booking received:", bookingData);
         showInfo(
-          `New booking: ${bookingData.service} for ${bookingData.patientName} at ${bookingData.scheduledTime}`,
+          `New booking: ${bookingData.service} for ${
+            bookingData.customerName || bookingData.patientName || "Customer"
+          } at ${bookingData.scheduledTime}`,
           {
             duration: 10000,
             action: {

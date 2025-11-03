@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../../contexts/ToastContext";
 import { useSocket } from "../../contexts/SocketContext";
@@ -18,21 +19,27 @@ import {
   History,
   Shield,
   AlertTriangle,
+  Download,
+  FileText,
+  Navigation,
 } from "lucide-react";
 import Button from "../ui/Button";
 import Card from "../ui/Card";
 import Badge from "../ui/Badge";
 import Modal from "../ui/Modal";
+import ESignatureModal from "../ui/ESignatureModal";
+import ProviderStatusUpdateCard from "./ProviderStatusUpdateCard";
+import LocationTrackingManager from "./LocationTrackingManager";
 
 const ProviderBookingManagement = () => {
-  const { user, userType } = useAuth();
+  const navigate = useNavigate();
+  const { user, userType, loading: authLoading } = useAuth();
   const { showSuccess, showError } = useToast();
   const { socket } = useSocket();
   const [bookings, setBookings] = useState([]);
   const [filteredBookings, setFilteredBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedBooking, setSelectedBooking] = useState(null);
-  const [showStatusModal, setShowStatusModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showLogsModal, setShowLogsModal] = useState(false);
   const [statusUpdate, setStatusUpdate] = useState({
@@ -42,22 +49,26 @@ const ProviderBookingManagement = () => {
   const [selectedFilter, setSelectedFilter] = useState("all");
   const [showAllBookings, setShowAllBookings] = useState(false);
   const [bookingLogs, setBookingLogs] = useState([]);
+  const [showESignModal, setShowESignModal] = useState(false);
 
   useEffect(() => {
     fetchBookings();
+  }, []);
 
-    // Listen for new bookings
-    if (socket) {
-      socket.on("new-booking", handleNewBooking);
-      socket.on("booking-status-updated", handleBookingStatusUpdate);
-      // Removed booking-claimed listener - no more assignment restrictions
+  useEffect(() => {
+    // Listen for new bookings and status updates
+    if (!socket) return;
 
-      return () => {
-        socket.off("new-booking");
-        socket.off("booking-status-updated");
-        // Removed booking-claimed cleanup
-      };
-    }
+    socket.on("new-booking", handleNewBooking);
+    socket.on("booking-status-updated", handleBookingStatusUpdate);
+    socket.on("provider-location-updated", handleProviderLocationUpdate);
+
+    return () => {
+      socket.off("new-booking", handleNewBooking);
+      socket.off("booking-status-updated", handleBookingStatusUpdate);
+      socket.off("provider-location-updated", handleProviderLocationUpdate);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [socket]);
 
   const fetchBookings = async () => {
@@ -131,58 +142,221 @@ const ProviderBookingManagement = () => {
   const handleNewBooking = (bookingData) => {
     console.log("New booking received:", bookingData);
     showSuccess(`New booking received: ${bookingData.bookingNumber}`);
-    fetchBookings(); // Refresh the list
+
+    // Add new booking to the list immediately
+    setBookings((prevBookings) => {
+      // Check if booking already exists
+      const exists = prevBookings.some(
+        (b) =>
+          b._id === bookingData.bookingId ||
+          b.bookingNumber === bookingData.bookingNumber
+      );
+      if (!exists) {
+        // Add new booking to the beginning
+        return [bookingData, ...prevBookings];
+      }
+      return prevBookings;
+    });
+
+    // Refresh after a short delay to get full booking data
+    setTimeout(() => {
+      fetchBookings();
+    }, 500);
   };
 
   const handleBookingStatusUpdate = (data) => {
     console.log("Booking status updated:", data);
-    fetchBookings(); // Refresh the list
+
+    // Update the booking in the list immediately
+    setBookings((prevBookings) =>
+      prevBookings.map((booking) => {
+        if (
+          booking._id === data.bookingId ||
+          booking.bookingNumber === data.bookingNumber
+        ) {
+          // Determine if tracking should be active
+          const shouldTrack =
+            data.status === "provider-on-way" ||
+            data.status === "work-started" ||
+            data.status === "provider-started" ||
+            data.status === "in-progress";
+
+          const isTracking = shouldTrack
+            ? booking.providerLocation?.isTracking ?? false
+            : false;
+
+          return {
+            ...booking,
+            status: data.status,
+            providerNotes: data.providerNotes || booking.providerNotes,
+            providerLocation: {
+              ...booking.providerLocation,
+              isTracking: isTracking,
+            },
+          };
+        }
+        return booking;
+      })
+    );
+
+    // Update filtered bookings as well
+    setFilteredBookings((prevFiltered) =>
+      prevFiltered.map((booking) => {
+        if (
+          booking._id === data.bookingId ||
+          booking.bookingNumber === data.bookingNumber
+        ) {
+          const shouldTrack =
+            data.status === "provider-on-way" ||
+            data.status === "work-started" ||
+            data.status === "provider-started" ||
+            data.status === "in-progress";
+
+          const isTracking = shouldTrack
+            ? booking.providerLocation?.isTracking ?? false
+            : false;
+
+          return {
+            ...booking,
+            status: data.status,
+            providerNotes: data.providerNotes || booking.providerNotes,
+            providerLocation: {
+              ...booking.providerLocation,
+              isTracking: isTracking,
+            },
+          };
+        }
+        return booking;
+      })
+    );
+
+    // Show success notification
+    const statusMessages = {
+      pending: "Booking is pending review",
+      confirmed: "Booking confirmed",
+      "provider-started": "Provider started service",
+      "provider-on-way": "Provider is on the way - Location tracking enabled",
+      "work-started": "Work started - Location tracking active",
+      "in-progress": "Service in progress - Location tracking active",
+      completed: "Service completed successfully",
+      cancelled: "Booking cancelled",
+    };
+
+    const message =
+      statusMessages[data.status] || `Status updated to ${data.status}`;
+    showSuccess(`Booking ${data.bookingNumber}: ${message}`);
+
+    // Refresh to get latest data
+    setTimeout(() => {
+      fetchBookings();
+    }, 500);
+  };
+
+  const handleProviderLocationUpdate = (data) => {
+    console.log("Provider location updated:", data);
+
+    // Update the booking in both lists with new location
+    setBookings((prevBookings) =>
+      prevBookings.map((booking) => {
+        if (
+          booking._id === data.bookingId ||
+          booking.bookingNumber === data.bookingNumber
+        ) {
+          return {
+            ...booking,
+            providerLocation: {
+              ...booking.providerLocation,
+              ...data.location,
+              isTracking: true,
+            },
+          };
+        }
+        return booking;
+      })
+    );
+
+    setFilteredBookings((prevFiltered) =>
+      prevFiltered.map((booking) => {
+        if (
+          booking._id === data.bookingId ||
+          booking.bookingNumber === data.bookingNumber
+        ) {
+          return {
+            ...booking,
+            providerLocation: {
+              ...booking.providerLocation,
+              ...data.location,
+              isTracking: true,
+            },
+          };
+        }
+        return booking;
+      })
+    );
+
+    // Update selected booking if it matches
+    if (
+      selectedBooking &&
+      (selectedBooking._id === data.bookingId ||
+        selectedBooking.bookingNumber === data.bookingNumber)
+    ) {
+      setSelectedBooking((prev) => ({
+        ...prev,
+        providerLocation: {
+          ...prev.providerLocation,
+          ...data.location,
+          isTracking: true,
+        },
+      }));
+    }
+  };
+
+  const downloadInvoice = async (bookingId, includeSignature = false) => {
+    try {
+      const blob = await bookingsAPI.getInvoice(bookingId, includeSignature);
+      const url = window.URL.createObjectURL(
+        new Blob([blob], { type: "application/pdf" })
+      );
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `Invoice_${bookingId}${
+        includeSignature ? "_signed" : ""
+      }.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      showSuccess("Invoice download started");
+    } catch (error) {
+      console.error("Invoice download error:", error);
+      showError("Failed to download invoice");
+    }
   };
 
   // Booking claimed handler removed - no more assignment restrictions
 
-  const handleStatusUpdate = (booking) => {
-    // All providers can update any booking (removed assignment restrictions)
-    console.log("🔧 Status update check:", {
-      bookingId: booking._id,
-      bookingProvider: booking.provider?._id,
-      currentUser: user._id,
-      userType,
-      canUpdate: true, // All providers can update
-    });
-
-    setSelectedBooking(booking);
-    setStatusUpdate({
-      status: booking.status,
-      providerNotes: booking.providerNotes || "",
-    });
-    setShowStatusModal(true);
-  };
-
-  const updateBookingStatus = async () => {
+  const updateBookingStatus = async (bookingId, status, providerNotes) => {
     try {
-      console.log("🔧 Updating booking status:", {
-        bookingId: selectedBooking._id,
-        status: statusUpdate.status,
-        providerNotes: statusUpdate.providerNotes,
-        providerId: user._id,
-        providerName: user.name,
-        userType,
-      });
+      // If completing, require e-signature first
+      if (status === "completed") {
+        setSelectedBooking(
+          bookings.find((b) => b._id === bookingId) || selectedBooking
+        );
+        setShowESignModal(true);
+        return;
+      }
 
       const response = await bookingsAPI.updateBookingStatus(
-        selectedBooking._id,
-        statusUpdate.status,
-        statusUpdate.providerNotes,
-        user._id, // Provider ID for logging
-        user.name // Provider name for logging
+        bookingId,
+        status,
+        providerNotes,
+        user._id,
+        user.name
       );
 
       if (response.success) {
-        showSuccess(
-          `Booking status updated to ${statusUpdate.status} by ${user.name}`
-        );
-        setShowStatusModal(false);
+        showSuccess(`Booking status updated to ${status}`);
+        setExpandedStatusUpdate(null); // Collapse the status update section
         fetchBookings();
       } else {
         showError(response.message || "Failed to update booking status");
@@ -194,6 +368,40 @@ const ProviderBookingManagement = () => {
       } else {
         showError("Failed to update booking status");
       }
+    }
+  };
+
+  const handleLocationTrackingStart = async (bookingId, location) => {
+    try {
+      await bookingsAPI.updateProviderLocation(
+        bookingId,
+        location.latitude,
+        location.longitude
+      );
+      showSuccess("Location tracking started");
+      fetchBookings();
+    } catch (error) {
+      console.error("Error starting location tracking:", error);
+      showError("Failed to start location tracking");
+    }
+  };
+
+  const handleLocationTrackingUpdate = (updatedLocation) => {
+    setBookings((prevBookings) =>
+      prevBookings.map((b) =>
+        b._id === selectedBooking._id
+          ? {
+              ...b,
+              providerLocation: updatedLocation,
+            }
+          : b
+      )
+    );
+    if (selectedBooking) {
+      setSelectedBooking((prev) => ({
+        ...prev,
+        providerLocation: updatedLocation,
+      }));
     }
   };
 
@@ -241,11 +449,20 @@ const ProviderBookingManagement = () => {
     );
   }
 
-  // Check if provider profile is approved
+  // Check if provider profile is approved (wait until auth profile is loaded)
   const isProfileApproved = user?.verificationStatus === "approved";
 
-  // Show profile status message if not approved
-  if (!isProfileApproved) {
+  // While auth is loading, show spinner not pending gate
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  // Show profile status message only when explicitly pending/rejected/suspended
+  if (user?.verificationStatus && !isProfileApproved) {
     const getStatusMessage = (status) => {
       switch (status) {
         case "pending":
@@ -387,6 +604,16 @@ const ProviderBookingManagement = () => {
               {bookings.filter((b) => b.status === "confirmed").length})
             </Button>
             <Button
+              onClick={() => handleFilterChange("provider-on-way")}
+              variant={
+                selectedFilter === "provider-on-way" ? "primary" : "outline"
+              }
+              size="sm"
+            >
+              En Route (
+              {bookings.filter((b) => b.status === "provider-on-way").length})
+            </Button>
+            <Button
               onClick={() => handleFilterChange("in-progress")}
               variant={selectedFilter === "in-progress" ? "primary" : "outline"}
               size="sm"
@@ -451,13 +678,65 @@ const ProviderBookingManagement = () => {
               <Card
                 key={booking._id}
                 padding="lg"
-                className="hover:shadow-md transition-shadow"
+                className="hover:shadow-md transition-all relative group cursor-pointer"
+                onClick={() => navigate(`/provider/bookings/${booking._id}`)}
               >
-                <div className="flex justify-between items-start mb-4">
+                {/* Shortcut Icon Buttons - Top Right */}
+                <div
+                  className="absolute top-4 right-4 flex gap-2 z-10"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    onClick={() => {
+                      navigate(`/provider/bookings/${booking._id}`);
+                    }}
+                    className="p-2 rounded-lg bg-white/90 hover:bg-white border border-gray-200 shadow-sm transition-all hover:scale-110"
+                    title="View Details"
+                  >
+                    <Eye className="h-4 w-4 text-gray-700" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      fetchBookingLogs(booking._id);
+                    }}
+                    className="p-2 rounded-lg bg-white/90 hover:bg-white border border-gray-200 shadow-sm transition-all hover:scale-110"
+                    title="View Status History"
+                  >
+                    <History className="h-4 w-4 text-gray-700" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      downloadInvoice(booking._id, false);
+                    }}
+                    className="p-2 rounded-lg bg-white/90 hover:bg-white border border-gray-200 shadow-sm transition-all hover:scale-110"
+                    title="Download Invoice"
+                  >
+                    <Download className="h-4 w-4 text-gray-700" />
+                  </button>
+                  {booking.status === "completed" &&
+                    booking.eSignature?.signature && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          downloadInvoice(booking._id, true);
+                        }}
+                        className="p-2 rounded-lg bg-white/90 hover:bg-white border border-gray-200 shadow-sm transition-all hover:scale-110"
+                        title="Download E-Signed Invoice"
+                      >
+                        <FileText className="h-4 w-4 text-gray-700" />
+                      </button>
+                    )}
+                </div>
+
+                <div className="flex flex-col gap-3 mb-4 pr-20">
                   <div>
                     <div className="flex items-center gap-2 mb-2">
                       <h3 className="text-lg font-semibold text-gray-900">
-                        {booking.service?.title}
+                        {booking.serviceTitle ||
+                          booking.service?.title ||
+                          "Healthcare Service"}
                       </h3>
                       <Badge color={getStatusColor(booking.status)}>
                         <StatusIcon className="h-3 w-3 mr-1" />
@@ -467,128 +746,68 @@ const ProviderBookingManagement = () => {
                     <p className="text-sm text-gray-600 mb-1">
                       Booking #: {booking.bookingNumber}
                     </p>
-                    <div className="text-sm text-gray-600">
-                      <p>All providers can manage this booking</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={() => {
-                        setSelectedBooking(booking);
-                        setShowDetailsModal(true);
-                      }}
-                      variant="outline"
-                      size="sm"
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      View Details
-                    </Button>
-
-                    <Button
-                      onClick={() => fetchBookingLogs(booking._id)}
-                      variant="outline"
-                      size="sm"
-                    >
-                      <History className="h-4 w-4 mr-1" />
-                      View Logs
-                    </Button>
-
-                    <Button
-                      onClick={() => handleStatusUpdate(booking)}
-                      variant="primary"
-                      size="sm"
-                    >
-                      {userType === "admin" ? "Admin Update" : "Update Status"}
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Patient Information */}
-                  <div className="space-y-2">
-                    <h4 className="font-medium text-gray-900 flex items-center">
-                      <User className="h-4 w-4 mr-2" />
-                      Patient Details
-                    </h4>
-                    <div className="space-y-1 text-sm">
-                      <p>
-                        <span className="font-medium">Name:</span>{" "}
-                        {booking.patientInfo?.name}
-                      </p>
-                      <p>
-                        <span className="font-medium">Age:</span>{" "}
-                        {booking.patientInfo?.age}
-                      </p>
-                      <p>
-                        <span className="font-medium">Phone:</span>{" "}
-                        {booking.patientInfo?.phone}
-                      </p>
-                      <p>
-                        <span className="font-medium">Emergency:</span>{" "}
-                        {booking.patientInfo?.emergencyContact}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Booking Details */}
-                  <div className="space-y-2">
-                    <h4 className="font-medium text-gray-900 flex items-center">
-                      <Calendar className="h-4 w-4 mr-2" />
-                      Booking Details
-                    </h4>
-                    <div className="space-y-1 text-sm">
-                      <p className="flex items-center">
-                        <Calendar className="h-3 w-3 mr-1" />
+                    <div className="flex items-center gap-4 text-sm text-gray-600">
+                      <span className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
                         {new Date(booking.scheduledDate).toLocaleDateString()}
-                      </p>
-                      <p className="flex items-center">
-                        <Clock className="h-3 w-3 mr-1" />
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
                         {booking.scheduledTime}
-                      </p>
-                      <p className="flex items-center">
-                        <MapPin className="h-3 w-3 mr-1" />
-                        {booking.address?.street}, {booking.address?.city}
-                      </p>
-                      <p className="font-medium text-green-600">
+                      </span>
+                      <span className="font-medium text-green-600">
                         ₹{booking.totalAmount}
-                      </p>
+                      </span>
                     </div>
+                    {/* Location Tracking Information */}
+                    {booking.providerLocation?.isTracking &&
+                      (booking.status === "provider-on-way" ||
+                        booking.status === "provider-started" ||
+                        booking.status === "work-started" ||
+                        booking.status === "in-progress" ||
+                        booking.status === "confirmed") && (
+                        <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                          <div className="flex items-center gap-2 text-sm text-blue-700 mb-1">
+                            <Navigation className="h-4 w-4 animate-pulse" />
+                            <span className="font-semibold">
+                              Location Tracking Active
+                            </span>
+                          </div>
+                          {booking.providerLocation?.lastUpdated && (
+                            <p className="text-xs text-blue-600 ml-6">
+                              Last updated:{" "}
+                              {new Date(
+                                booking.providerLocation.lastUpdated
+                              ).toLocaleTimeString()}{" "}
+                              (
+                              {Math.round(
+                                (new Date() -
+                                  new Date(
+                                    booking.providerLocation.lastUpdated
+                                  )) /
+                                  1000 /
+                                  60
+                              )}{" "}
+                              min ago)
+                            </p>
+                          )}
+                          {booking.providerLocation?.latitude &&
+                            booking.providerLocation?.longitude && (
+                              <a
+                                href={`https://www.google.com/maps?q=${booking.providerLocation.latitude},${booking.providerLocation.longitude}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="ml-6 text-xs text-blue-600 hover:text-blue-800 underline flex items-center gap-1 mt-1"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <MapPin className="h-3 w-3" />
+                                View on Map
+                              </a>
+                            )}
+                        </div>
+                      )}
                   </div>
                 </div>
-
-                {/* Symptoms and Notes */}
-                {(booking.symptoms || booking.notes) && (
-                  <div className="mt-4 pt-4 border-t border-gray-200">
-                    <h4 className="font-medium text-gray-900 mb-2 flex items-center">
-                      <MessageSquare className="h-4 w-4 mr-2" />
-                      Additional Information
-                    </h4>
-                    {booking.symptoms && (
-                      <p className="text-sm text-gray-600 mb-1">
-                        <span className="font-medium">Symptoms:</span>{" "}
-                        {booking.symptoms}
-                      </p>
-                    )}
-                    {booking.notes && (
-                      <p className="text-sm text-gray-600">
-                        <span className="font-medium">Notes:</span>{" "}
-                        {booking.notes}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* Provider Notes */}
-                {booking.providerNotes && (
-                  <div className="mt-4 pt-4 border-t border-gray-200">
-                    <h4 className="font-medium text-gray-900 mb-2">
-                      Provider Notes
-                    </h4>
-                    <p className="text-sm text-gray-600 bg-blue-50 p-2 rounded">
-                      {booking.providerNotes}
-                    </p>
-                  </div>
-                )}
               </Card>
             );
           })
@@ -686,42 +905,50 @@ const ProviderBookingManagement = () => {
 
               <div>
                 <h4 className="font-medium text-gray-900 mb-3">
-                  Patient Information
+                  Customer Information
                 </h4>
                 <div className="space-y-2 text-sm">
                   <p>
                     <span className="font-medium">Name:</span>{" "}
-                    {selectedBooking.patientInfo?.name}
+                    {selectedBooking.customerInfo?.name ||
+                      selectedBooking.patientInfo?.name}
                   </p>
                   <p>
                     <span className="font-medium">Age:</span>{" "}
-                    {selectedBooking.patientInfo?.age}
+                    {selectedBooking.customerInfo?.age ||
+                      selectedBooking.patientInfo?.age}
                   </p>
                   <p>
                     <span className="font-medium">Phone:</span>{" "}
-                    {selectedBooking.patientInfo?.phone}
+                    {selectedBooking.customerInfo?.phone ||
+                      selectedBooking.patientInfo?.phone}
                   </p>
                   <p>
                     <span className="font-medium">Emergency Contact:</span>{" "}
-                    {selectedBooking.patientInfo?.emergencyContact}
+                    {selectedBooking.customerInfo?.emergencyContact ||
+                      selectedBooking.patientInfo?.emergencyContact}
                   </p>
                 </div>
               </div>
             </div>
 
             {/* Additional Information */}
-            {(selectedBooking.symptoms || selectedBooking.notes) && (
+            {(selectedBooking.serviceRequirements ||
+              selectedBooking.symptoms ||
+              selectedBooking.notes) && (
               <div>
                 <h4 className="font-medium text-gray-900 mb-3">
                   Additional Information
                 </h4>
-                {selectedBooking.symptoms && (
+                {(selectedBooking.serviceRequirements ||
+                  selectedBooking.symptoms) && (
                   <div className="mb-3">
                     <p className="text-sm font-medium text-gray-700 mb-1">
-                      Symptoms:
+                      Service Requirements:
                     </p>
                     <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
-                      {selectedBooking.symptoms}
+                      {selectedBooking.serviceRequirements ||
+                        selectedBooking.symptoms}
                     </p>
                   </div>
                 )}
@@ -825,85 +1052,19 @@ const ProviderBookingManagement = () => {
         </div>
       </Modal>
 
-      {/* Status Update Modal */}
-      <Modal
-        isOpen={showStatusModal}
-        onClose={() => setShowStatusModal(false)}
-        title="Update Booking Status"
-      >
-        {selectedBooking && (
-          <div className="space-y-4">
-            <div>
-              <h3 className="font-medium text-gray-900 mb-2">
-                Booking #{selectedBooking.bookingNumber}
-              </h3>
-              <p className="text-sm text-gray-600">
-                Service:{" "}
-                {selectedBooking.serviceTitle ||
-                  selectedBooking.service?.title ||
-                  "Healthcare Service"}
-              </p>
-              <div className="mt-2 p-3 bg-gray-50 rounded-lg border">
-                <p className="text-gray-700 font-medium">
-                  📋 Booking Management
-                </p>
-                <p className="text-gray-600 text-sm mt-1">
-                  All providers can update this booking status
-                </p>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Status
-              </label>
-              <select
-                value={statusUpdate.status}
-                onChange={(e) =>
-                  setStatusUpdate({ ...statusUpdate, status: e.target.value })
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="pending">Pending</option>
-                <option value="confirmed">Confirmed</option>
-                <option value="in-progress">In Progress</option>
-                <option value="completed">Completed</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Provider Notes
-              </label>
-              <textarea
-                value={statusUpdate.providerNotes}
-                onChange={(e) =>
-                  setStatusUpdate({
-                    ...statusUpdate,
-                    providerNotes: e.target.value,
-                  })
-                }
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Add any notes for the customer..."
-              />
-            </div>
-
-            <div className="flex justify-end space-x-3">
-              <Button
-                onClick={() => setShowStatusModal(false)}
-                variant="outline"
-              >
-                Cancel
-              </Button>
-              <Button onClick={updateBookingStatus}>
-                {userType === "admin" ? "Admin Update" : "Update Status"}
-              </Button>
-            </div>
-          </div>
-        )}
-      </Modal>
+      {/* E-Signature Modal */}
+      {selectedBooking && (
+        <ESignatureModal
+          isOpen={showESignModal}
+          onClose={() => setShowESignModal(false)}
+          bookingId={selectedBooking._id}
+          onSigned={() => {
+            setShowStatusModal(false);
+            setShowESignModal(false);
+            fetchBookings();
+          }}
+        />
+      )}
     </div>
   );
 };

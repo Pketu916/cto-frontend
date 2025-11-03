@@ -184,8 +184,8 @@ const ServiceDetails = () => {
                     key={`${service.id}-feature-${index}`}
                     className="flex items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors duration-300"
                   >
-                    <div className="w-8 h-8 bg-[#83D915] bg-opacity-10 rounded-full flex items-center justify-center mr-4 flex-shrink-0">
-                      <Icon name="check" size="sm" className="text-[#83D915]" />
+                    <div className="w-8 h-8 bg-secondary/10 rounded-full flex items-center justify-center mr-4 flex-shrink-0">
+                      <Icon name="check" size="sm" className="text-secondary" />
                     </div>
                     <span className="text-gray-700 font-medium">{feature}</span>
                   </div>
@@ -207,8 +207,8 @@ const ServiceDetails = () => {
               </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="bg-[#012939]/80 rounded-xl p-8 text-white">
-                <h3 className="text-2xl font-bold mb-4 text-[#a0f92d]">
+              <div className="bg-primary/80 rounded-xl p-8 text-white">
+                <h3 className="text-2xl font-bold mb-4 text-secondary">
                   Standard Pricing
                 </h3>
                 <div className="text-4xl font-bold mb-4">

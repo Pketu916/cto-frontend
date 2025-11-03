@@ -26,8 +26,8 @@ const schema = yup.object({
 });
 
 const userTypeOptions = [
-  { value: "user", label: "Patient", icon: User },
-  { value: "provider", label: "Healthcare Provider", icon: Shield },
+  { value: "user", label: "Customer", icon: User },
+  { value: "provider", label: "Service Provider", icon: Shield },
   { value: "admin", label: "Administrator", icon: Settings },
 ];
 
@@ -46,6 +46,7 @@ const Login = () => {
     handleSubmit,
     formState: { errors },
     watch,
+    setError,
   } = useForm({
     resolver: yupResolver(schema),
   });
@@ -90,8 +91,20 @@ const Login = () => {
         navigate(redirectPath, { replace: true });
       } else {
         console.log("❌ Login failed:", result.message);
-        setLoginError(result.message);
-        showError(result.message);
+        const errorMsg = result.message || "Login failed. Please try again.";
+        setLoginError(errorMsg);
+        showError(errorMsg);
+
+        // Set field-specific errors if available
+        if (result.errors) {
+          Object.keys(result.errors).forEach((field) => {
+            // Set error for the specific field using react-hook-form
+            setError(field, {
+              type: "server",
+              message: result.errors[field],
+            });
+          });
+        }
       }
     } catch (err) {
       console.error("💥 Login error:", err);
@@ -227,13 +240,13 @@ const Login = () => {
                 to="/register/user"
                 className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors duration-200"
               >
-                Register as Patient
+                Register as Customer
               </Link>
               <Link
                 to="/register/provider"
                 className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors duration-200"
               >
-                Register as Healthcare Provider
+                Register as Service Provider
               </Link>
             </div>
           </div>

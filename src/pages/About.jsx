@@ -8,6 +8,7 @@ import {
   HeroSection,
 } from "../components/layout";
 import { Card } from "../components/ui";
+import { ScrollCar } from "../components/sections";
 
 const About = () => {
   const teamMembers = [
@@ -53,11 +54,16 @@ const About = () => {
       <PageContainer maxWidth="full" padding="none">
         {/* Hero Section */}
         <HeroSection
-          title="About CTO India"
-          subtitle="We are dedicated to revolutionizing healthcare delivery across India through innovative technology solutions. Our mission is to make quality healthcare accessible, affordable, and efficient for every Indian citizen."
-          image="https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?w=800&h=600&fit=crop"
-          imageAlt="Healthcare technology team"
+          title="About MyCRT"
+          subtitle="MyCRT (My Care Response Team) is an innovative 24/7 Care Response and Membership-Based Support Service, purpose-built for NDIS Participants, My Aged Care recipients, carers, and families."
+          image="https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=800&h=600&fit=crop"
+          imageAlt="MyCRT care response team"
         />
+
+        {/* Scroll Car Animation Section */}
+        {/* <section className="py-8 bg-gray-50">
+          <ScrollCar className="max-w-7xl mx-auto" />
+        </section> */}
 
         {/* Mission & Vision */}
         <section className="py-16">
@@ -84,11 +90,10 @@ const About = () => {
                     Our Mission
                   </h3>
                   <p className="text-gray-600 leading-relaxed">
-                    To transform healthcare delivery in India by providing
-                    accessible, affordable, and high-quality medical services
-                    through innovative technology solutions. We believe that
-                    quality healthcare should be available to everyone,
-                    everywhere.
+                    To deliver fast, reliable, and clinically guided care
+                    response services that bridge the gap between planned
+                    supports and real-time needs — reducing risks during crises,
+                    breakdowns, or changes in circumstances.
                   </p>
                 </div>
               </Card>
@@ -120,10 +125,9 @@ const About = () => {
                     Our Vision
                   </h3>
                   <p className="text-gray-600 leading-relaxed">
-                    To become India's leading healthcare technology platform,
-                    connecting patients with quality healthcare providers and
-                    creating a seamless healthcare ecosystem that prioritizes
-                    patient care, innovation, and accessibility.
+                    We work together to make a difference in the lives of
+                    vulnerable people by ensuring care, compassion, respect, and
+                    trust are always available — anytime, anywhere.
                   </p>
                 </div>
               </Card>
@@ -188,78 +192,33 @@ const About = () => {
                 Principles that guide our work and define our culture
               </p>
             </div>
-            <div className="grid md:grid-cols-3 gap-8">
-              <div className="text-center">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg
-                    className="w-8 h-8 text-blue-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {[
+                { name: "Compassion", color: "red" },
+                { name: "Respect", color: "blue" },
+                { name: "Trust", color: "green" },
+                { name: "Reliability", color: "purple" },
+                { name: "Dignity", color: "orange" },
+                { name: "Safety", color: "indigo" },
+              ].map((value, index) => (
+                <div key={index} className="text-center">
+                  <div
+                    className={`w-16 h-16 bg-${value.color}-100 rounded-full flex items-center justify-center mx-auto mb-4`}
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
+                    <span
+                      className={`text-2xl font-bold text-${value.color}-600`}
+                    >
+                      {value.name[0]}
+                    </span>
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-3">
+                    {value.name}
+                  </h3>
+                  <p className="text-gray-600">
+                    Core value that guides our care response service delivery
+                  </p>
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">
-                  Quality First
-                </h3>
-                <p className="text-gray-600">
-                  We always deliver the highest quality healthcare services
-                  without compromise
-                </p>
-              </div>
-              <div className="text-center">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg
-                    className="w-8 h-8 text-green-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                    />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">
-                  Customer Focus
-                </h3>
-                <p className="text-gray-600">
-                  Patient satisfaction and care are our top priorities
-                </p>
-              </div>
-              <div className="text-center">
-                <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg
-                    className="w-8 h-8 text-purple-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13 10V3L4 14h7v7l9-11h-7z"
-                    />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">
-                  Innovation
-                </h3>
-                <p className="text-gray-600">
-                  We leverage cutting-edge technology and creative solutions to
-                  improve healthcare
-                </p>
-              </div>
+              ))}
             </div>
           </div>
         </section>

@@ -8,8 +8,12 @@
 /* CSS Custom Properties for Design System */
 :root {
     /* Colors */
-    --color-primary: #012939;
-    --color-secondary: #a0f92d;
+    --color-primary: #0B1F3B;
+    /* dark blue */
+    --color-secondary: #FF7A00;
+    /* orange */
+    --color-accent: #6C4BC0;
+    /* purple */
     --color-white: #ffffff;
 
     /* Typography */
@@ -127,8 +131,8 @@ p {
     width: 100%;
     max-width: var(--container-max-width);
     margin: 0 auto;
-    padding-left:1rem;
-    padding-right:1rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
 }
 
 /* Button Base Styles */
@@ -153,7 +157,7 @@ p {
 }
 
 .btn-primary:hover {
-    background-color: #001a26;
+    background-color: #071628;
     transform: translateY(-1px);
 }
 
@@ -163,7 +167,7 @@ p {
 }
 
 .btn-secondary:hover {
-    background-color: #8de024;
+    background-color: #e66d00;
     transform: translateY(-1px);
 }
 

@@ -1,26 +1,26 @@
 export const features = [
   {
-    title: "Get Noticed",
+    title: "24/7 Care Response",
     description:
-      "Marketing tools to help you stand out, get discovered, and win more business.",
-    link: "#",
+      "Round-the-clock emergency and after-hours support when you need it most. Immediate response from qualified professionals available anytime.",
+    link: "/how-it-works",
   },
   {
-    title: "Win Jobs",
+    title: "NDIS & Aged Care Support",
     description:
-      "Turn leads into customers with fast follow-ups and automated reminders.",
-    link: "#",
+      "Comprehensive services for NDIS participants and My Aged Care recipients with flexible scheduling and billing aligned to price guides.",
+    link: "/eligibility",
   },
   {
-    title: "Work Smarter",
+    title: "Innovative Technology",
     description:
-      "Save hours every week with quick job scheduling, invoicing, and payments.",
-    link: "#",
+      "Advanced platform with real-time tracking, mobile app access, GPS monitoring, and seamless service coordination for better care delivery.",
+    link: "/services",
   },
   {
-    title: "Boost Profits",
+    title: "Expert Care Team",
     description:
-      "Know where your money's going with real-time expense tracking and reports.",
-    link: "#",
+      "Qualified medical, nursing, and psychosocial professionals providing personalized care solutions tailored to your specific needs.",
+    link: "/clinical-team",
   },
 ];

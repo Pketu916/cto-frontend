@@ -12,6 +12,10 @@ export { default as LoadingSpinner } from "./LoadingSpinner";
 export { default as Toast } from "./Toast";
 export { default as FAQItem } from "./FAQItem";
 export { default as FAQSection } from "./FAQSection";
+export { default as ProviderLocationMap } from "./ProviderLocationMap";
+export { default as StatusTracker } from "./StatusTracker";
+export { default as StatusDot } from "./StatusDot";
+export { default as ESignatureModal } from "./ESignatureModal";
 
 // Re-export organized components
 export * from "../auth";

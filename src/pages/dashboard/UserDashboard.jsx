@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../../contexts/ToastContext";
 import {
@@ -14,6 +15,7 @@ import {
   XCircle,
   AlertCircle,
   Eye,
+  Navigation,
 } from "lucide-react";
 import Button from "../../components/ui/Button";
 import Modal from "../../components/ui/Modal";
@@ -24,15 +26,19 @@ import { useSocket } from "../../contexts/SocketContext";
 import { bookingsAPI } from "../../services/api";
 import api from "../../services/api";
 import Badge from "../../components/ui/Badge";
+import {
+  ProviderLocationMap,
+  StatusTracker,
+  StatusDot,
+} from "../../components/ui";
 
 const UserDashboard = () => {
+  const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { showSuccess, showError } = useToast();
   const { socket } = useSocket();
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
-  const [selectedBooking, setSelectedBooking] = useState(null);
-  const [showBookingDetailsModal, setShowBookingDetailsModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [bookingsLoading, setBookingsLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -79,22 +85,102 @@ const UserDashboard = () => {
   useEffect(() => {
     fetchStats();
     fetchBookings();
+  }, []);
 
+  useEffect(() => {
     // Listen for booking status updates
-    if (socket) {
-      socket.on("booking-status-updated", handleBookingStatusUpdate);
-      return () => {
-        socket.off("booking-status-updated");
-      };
-    }
+    if (!socket) return;
+
+    socket.on("booking-status-updated", handleBookingStatusUpdate);
+    socket.on("provider-location-updated", handleProviderLocationUpdate);
+
+    return () => {
+      socket.off("booking-status-updated", handleBookingStatusUpdate);
+      socket.off("provider-location-updated", handleProviderLocationUpdate);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [socket]);
 
   const handleBookingStatusUpdate = (data) => {
     console.log("Booking status updated:", data);
-    showSuccess(
-      `Booking ${data.bookingNumber} status updated to ${data.status}`
+
+    // Update the booking in the list immediately
+    setBookings((prevBookings) =>
+      prevBookings.map((booking) => {
+        if (
+          booking._id === data.bookingId ||
+          booking.bookingNumber === data.bookingNumber
+        ) {
+          // Determine if tracking should be active
+          const shouldTrack =
+            data.status === "provider-on-way" ||
+            data.status === "work-started" ||
+            data.status === "provider-started" ||
+            data.status === "in-progress";
+
+          const isTracking = shouldTrack
+            ? booking.providerLocation?.isTracking ?? false
+            : false;
+
+          return {
+            ...booking,
+            status: data.status,
+            providerNotes: data.providerNotes || booking.providerNotes,
+            providerLocation: {
+              ...booking.providerLocation,
+              isTracking: isTracking,
+            },
+          };
+        }
+        return booking;
+      })
     );
-    fetchBookings(); // Refresh the list
+
+    // Show success notification with status details
+    const statusMessages = {
+      pending: "Booking is being reviewed",
+      confirmed: "Booking confirmed! Provider will contact you soon",
+      "provider-started": "Provider has started the service",
+      "provider-on-way": "Provider is on the way! You can track their location",
+      "work-started": "Service work has started",
+      "in-progress": "Service is in progress",
+      completed: "Service completed successfully!",
+      cancelled: "Booking has been cancelled",
+    };
+
+    const message =
+      statusMessages[data.status] || `Status updated to ${data.status}`;
+    showSuccess(`Booking ${data.bookingNumber}: ${message}`);
+
+    // Refresh stats and bookings to get latest data
+    setTimeout(() => {
+      fetchStats();
+      fetchBookings();
+    }, 500);
+  };
+
+  const handleProviderLocationUpdate = (data) => {
+    console.log("Provider location updated:", data);
+
+    // Update the booking in the list with new location
+    setBookings((prevBookings) =>
+      prevBookings.map((booking) => {
+        if (
+          booking._id === data.bookingId ||
+          booking.bookingNumber === data.bookingNumber
+        ) {
+          return {
+            ...booking,
+            providerLocation: {
+              ...booking.providerLocation,
+              ...data.location,
+              isTracking: true,
+            },
+          };
+        }
+        return booking;
+      })
+    );
   };
 
   const handleLogout = () => {
@@ -102,15 +188,16 @@ const UserDashboard = () => {
     showSuccess("Logged out successfully");
   };
 
-  const handleBookingSubmit = async (bookingData) => {
-    try {
-      await api.post("/bookings", bookingData);
-      showSuccess("Service booked successfully!");
+  const handleBookingSubmit = (bookingResponse) => {
+    // ServiceBookingForm handles the booking internally and calls this callback with the response
+    if (bookingResponse.success) {
+      showSuccess(bookingResponse.message || "Service booked successfully!");
       setShowBookingModal(false);
+      setSelectedService(null);
+      fetchBookings(); // Refresh bookings list
       fetchStats(); // Refresh stats
-    } catch (error) {
-      console.error("Error booking service:", error);
-      showError("Failed to book service");
+    } else {
+      showError(bookingResponse.message || "Failed to book service");
     }
   };
 
@@ -131,9 +218,8 @@ const UserDashboard = () => {
     setShowBookingModal(true);
   };
 
-  const viewBookingDetails = (booking) => {
-    setSelectedBooking(booking);
-    setShowBookingDetailsModal(true);
+  const handleBookingClick = (bookingId) => {
+    navigate(`/user/bookings/${bookingId}`);
   };
 
   const getStatusColor = (status) => {
@@ -170,14 +256,30 @@ const UserDashboard = () => {
     }
   };
 
-  const getStatusMessage = (status) => {
+  const getStatusMessage = (status, booking) => {
     switch (status) {
       case "pending":
         return "Your booking is being reviewed by our team";
       case "confirmed":
-        return "Your booking has been confirmed. Provider will contact you soon";
+        return booking.providerLocation?.isTracking
+          ? "Provider is on the way! Track their location below"
+          : "Your booking has been confirmed. Provider will contact you soon";
+      case "provider-started":
+        return booking.providerLocation?.isTracking
+          ? "Provider has started and location tracking is active"
+          : "Provider has started the service";
+      case "provider-on-way":
+        return booking.providerLocation?.isTracking
+          ? "Provider is en route! Track their real-time location below"
+          : "Provider is on the way to your location";
+      case "work-started":
+        return booking.providerLocation?.isTracking
+          ? "Service work has started and location tracking is active"
+          : "Service work has started";
       case "in-progress":
-        return "Service provider is on the way or providing service";
+        return booking.providerLocation?.isTracking
+          ? "Service is in progress. Location tracking active"
+          : "Service provider is currently providing service";
       case "completed":
         return "Service has been completed successfully";
       case "cancelled":
@@ -294,9 +396,18 @@ const UserDashboard = () => {
             <div>
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-medium text-gray-900">My Orders</h3>
-                <Button onClick={fetchBookings} variant="outline" size="sm">
-                  Refresh
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => openBookingModal()}
+                    variant="primary"
+                    size="sm"
+                  >
+                    Book New Service
+                  </Button>
+                  <Button onClick={fetchBookings} variant="outline" size="sm">
+                    Refresh
+                  </Button>
+                </div>
               </div>
 
               {/* Bookings List */}
@@ -311,9 +422,15 @@ const UserDashboard = () => {
                     <h3 className="text-lg font-medium text-gray-900 mb-2">
                       No Bookings Yet
                     </h3>
-                    <p className="text-gray-600">
+                    <p className="text-gray-600 mb-4">
                       Your service bookings will appear here.
                     </p>
+                    <Button
+                      onClick={() => openBookingModal()}
+                      variant="primary"
+                    >
+                      Book Your First Service
+                    </Button>
                   </Card>
                 ) : (
                   bookings &&
@@ -325,125 +442,102 @@ const UserDashboard = () => {
                       <Card
                         key={booking._id}
                         padding="lg"
-                        className="hover:shadow-md transition-shadow"
+                        className="hover:shadow-md transition-shadow cursor-pointer"
+                        onClick={() => handleBookingClick(booking._id)}
                       >
-                        <div className="flex justify-between items-start mb-4">
-                          <div>
-                            <div className="flex items-center gap-2 mb-2">
-                              <h3 className="text-lg font-semibold text-gray-900">
-                                {booking.serviceTitle ||
-                                  booking.service?.title ||
-                                  "Healthcare Service"}
-                              </h3>
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              {/* Status Dot */}
+                              <StatusDot
+                                status={booking.status}
+                                bookingNumber={booking.bookingNumber}
+                                size="lg"
+                              />
+                              <div className="flex-1">
+                                <h3 className="text-lg font-semibold text-gray-900">
+                                  {booking.serviceTitle ||
+                                    booking.service?.title ||
+                                    "Healthcare Service"}
+                                </h3>
+                              </div>
                               <Badge color={getStatusColor(booking.status)}>
                                 <StatusIcon className="h-3 w-3 mr-1" />
                                 {booking.status.replace("-", " ")}
                               </Badge>
                             </div>
-                            <p className="text-sm text-gray-600 mb-1">
+                            <p className="text-sm text-gray-600 mb-1 ml-9">
                               Booking #: {booking.bookingNumber}
                             </p>
-                            <p className="text-sm text-gray-500">
-                              {getStatusMessage(booking.status)}
+                            <p className="text-sm text-gray-500 ml-9">
+                              {getStatusMessage(booking.status, booking)}
                             </p>
-                          </div>
-                          <div className="flex space-x-2">
-                            <Button
-                              onClick={() => viewBookingDetails(booking)}
-                              variant="outline"
-                              size="sm"
-                            >
-                              <Eye className="h-4 w-4 mr-1" />
-                              View Details
-                            </Button>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {/* Service Information */}
-                          <div className="space-y-2">
-                            <h4 className="font-medium text-gray-900 flex items-center">
-                              <Calendar className="h-4 w-4 mr-2" />
-                              Service Details
-                            </h4>
-                            <div className="space-y-1 text-sm">
-                              <p className="flex items-center">
-                                <Calendar className="h-3 w-3 mr-1" />
+                            {/* Basic Info - Always Visible */}
+                            <div className="flex items-center gap-4 text-sm text-gray-600 mt-2 ml-9">
+                              <span className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
                                 {new Date(
                                   booking.scheduledDate
                                 ).toLocaleDateString()}
-                              </p>
-                              <p className="flex items-center">
-                                <Clock className="h-3 w-3 mr-1" />
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
                                 {booking.scheduledTime}
-                              </p>
-                              <p className="flex items-center">
-                                <MapPin className="h-3 w-3 mr-1" />
-                                {booking.address?.street},{" "}
-                                {booking.address?.city}
-                              </p>
-                              <p className="font-medium text-green-600">
+                              </span>
+                              <span className="font-medium text-green-600">
                                 ₹{booking.totalAmount}
-                              </p>
+                              </span>
                             </div>
+                            {/* Location Tracking Information */}
+                            {booking.providerLocation?.isTracking &&
+                              (booking.status === "provider-on-way" ||
+                                booking.status === "provider-started" ||
+                                booking.status === "work-started" ||
+                                booking.status === "in-progress" ||
+                                booking.status === "confirmed") && (
+                                <div className="mt-3 ml-9 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                  <div className="flex items-center gap-2 text-sm text-blue-700 mb-1">
+                                    <Navigation className="h-4 w-4 animate-pulse" />
+                                    <span className="font-semibold">
+                                      Location Tracking Active
+                                    </span>
+                                  </div>
+                                  {booking.providerLocation?.lastUpdated && (
+                                    <p className="text-xs text-blue-600 ml-6">
+                                      Last updated:{" "}
+                                      {new Date(
+                                        booking.providerLocation.lastUpdated
+                                      ).toLocaleTimeString()}{" "}
+                                      (
+                                      {Math.round(
+                                        (new Date() -
+                                          new Date(
+                                            booking.providerLocation.lastUpdated
+                                          )) /
+                                          1000 /
+                                          60
+                                      )}{" "}
+                                      min ago)
+                                    </p>
+                                  )}
+                                  {booking.providerLocation?.latitude &&
+                                    booking.providerLocation?.longitude && (
+                                      <a
+                                        href={`https://www.google.com/maps?q=${booking.providerLocation.latitude},${booking.providerLocation.longitude}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="ml-6 text-xs text-blue-600 hover:text-blue-800 underline flex items-center gap-1 mt-1"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        <MapPin className="h-3 w-3" />
+                                        View on Map
+                                      </a>
+                                    )}
+                                </div>
+                              )}
                           </div>
-
-                          {/* Patient Information */}
-                          <div className="space-y-2">
-                            <h4 className="font-medium text-gray-900 flex items-center">
-                              <User className="h-4 w-4 mr-2" />
-                              Patient Details
-                            </h4>
-                            <div className="space-y-1 text-sm">
-                              <p>
-                                <span className="font-medium">Name:</span>{" "}
-                                {booking.patientInfo?.name}
-                              </p>
-                              <p>
-                                <span className="font-medium">Age:</span>{" "}
-                                {booking.patientInfo?.age}
-                              </p>
-                              <p>
-                                <span className="font-medium">Phone:</span>{" "}
-                                {booking.patientInfo?.phone}
-                              </p>
-                            </div>
-                          </div>
+                          <Eye className="h-5 w-5 text-gray-400 mt-2" />
                         </div>
-
-                        {/* Symptoms and Notes */}
-                        {(booking.symptoms || booking.notes) && (
-                          <div className="mt-4 pt-4 border-t border-gray-200">
-                            <h4 className="font-medium text-gray-900 mb-2 flex items-center">
-                              <MessageSquare className="h-4 w-4 mr-2" />
-                              Additional Information
-                            </h4>
-                            {booking.symptoms && (
-                              <p className="text-sm text-gray-600 mb-1">
-                                <span className="font-medium">Symptoms:</span>{" "}
-                                {booking.symptoms}
-                              </p>
-                            )}
-                            {booking.notes && (
-                              <p className="text-sm text-gray-600">
-                                <span className="font-medium">Notes:</span>{" "}
-                                {booking.notes}
-                              </p>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Provider Notes */}
-                        {booking.providerNotes && (
-                          <div className="mt-4 pt-4 border-t border-gray-200">
-                            <h4 className="font-medium text-gray-900 mb-2">
-                              Provider Notes
-                            </h4>
-                            <p className="text-sm text-gray-600 bg-blue-50 p-2 rounded">
-                              {booking.providerNotes}
-                            </p>
-                          </div>
-                        )}
                       </Card>
                     );
                   })
@@ -461,148 +555,9 @@ const UserDashboard = () => {
         >
           <ServiceBookingForm
             service={selectedService}
-            onSubmit={handleBookingSubmit}
+            onBookingSuccess={handleBookingSubmit}
             onCancel={handleCloseBookingModal}
           />
-        </Modal>
-
-        {/* Booking Details Modal */}
-        <Modal
-          isOpen={showBookingDetailsModal}
-          onClose={() => setShowBookingDetailsModal(false)}
-          title="Booking Details"
-          size="lg"
-        >
-          {selectedBooking && (
-            <div className="space-y-6">
-              {/* Booking Header */}
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    {selectedBooking.serviceTitle ||
-                      selectedBooking.service?.title ||
-                      "Healthcare Service"}
-                  </h3>
-                  <p className="text-sm text-gray-600">
-                    Booking #: {selectedBooking.bookingNumber}
-                  </p>
-                </div>
-                <Badge color={getStatusColor(selectedBooking.status)}>
-                  {(() => {
-                    const StatusIcon = getStatusIcon(selectedBooking.status);
-                    return <StatusIcon className="h-3 w-3 mr-1" />;
-                  })()}
-                  {selectedBooking.status.replace("-", " ")}
-                </Badge>
-              </div>
-
-              {/* Service Details */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h4 className="font-medium text-gray-900 mb-3">
-                    Service Information
-                  </h4>
-                  <div className="space-y-2 text-sm">
-                    <p className="flex items-center">
-                      <Calendar className="h-4 w-4 mr-2 text-gray-400" />
-                      {new Date(
-                        selectedBooking.scheduledDate
-                      ).toLocaleDateString()}
-                    </p>
-                    <p className="flex items-center">
-                      <Clock className="h-4 w-4 mr-2 text-gray-400" />
-                      {selectedBooking.scheduledTime}
-                    </p>
-                    <p className="flex items-center">
-                      <MapPin className="h-4 w-4 mr-2 text-gray-400" />
-                      {selectedBooking.address?.street},{" "}
-                      {selectedBooking.address?.city},{" "}
-                      {selectedBooking.address?.state} -{" "}
-                      {selectedBooking.address?.pincode}
-                    </p>
-                    <p className="font-medium text-green-600 text-lg">
-                      Total Amount: ₹{selectedBooking.totalAmount}
-                    </p>
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="font-medium text-gray-900 mb-3">
-                    Patient Information
-                  </h4>
-                  <div className="space-y-2 text-sm">
-                    <p>
-                      <span className="font-medium">Name:</span>{" "}
-                      {selectedBooking.patientInfo?.name}
-                    </p>
-                    <p>
-                      <span className="font-medium">Age:</span>{" "}
-                      {selectedBooking.patientInfo?.age}
-                    </p>
-                    <p>
-                      <span className="font-medium">Phone:</span>{" "}
-                      {selectedBooking.patientInfo?.phone}
-                    </p>
-                    <p>
-                      <span className="font-medium">Emergency Contact:</span>{" "}
-                      {selectedBooking.patientInfo?.emergencyContact}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Additional Information */}
-              {(selectedBooking.symptoms || selectedBooking.notes) && (
-                <div>
-                  <h4 className="font-medium text-gray-900 mb-3">
-                    Additional Information
-                  </h4>
-                  {selectedBooking.symptoms && (
-                    <div className="mb-3">
-                      <p className="text-sm font-medium text-gray-700 mb-1">
-                        Symptoms:
-                      </p>
-                      <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
-                        {selectedBooking.symptoms}
-                      </p>
-                    </div>
-                  )}
-                  {selectedBooking.notes && (
-                    <div>
-                      <p className="text-sm font-medium text-gray-700 mb-1">
-                        Notes:
-                      </p>
-                      <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
-                        {selectedBooking.notes}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Provider Notes */}
-              {selectedBooking.providerNotes && (
-                <div>
-                  <h4 className="font-medium text-gray-900 mb-3">
-                    Provider Notes
-                  </h4>
-                  <p className="text-sm text-gray-600 bg-blue-50 p-3 rounded">
-                    {selectedBooking.providerNotes}
-                  </p>
-                </div>
-              )}
-
-              {/* Status Message */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="font-medium text-gray-900 mb-2">
-                  Current Status
-                </h4>
-                <p className="text-sm text-gray-600">
-                  {getStatusMessage(selectedBooking.status)}
-                </p>
-              </div>
-            </div>
-          )}
         </Modal>
       </div>
     </div>

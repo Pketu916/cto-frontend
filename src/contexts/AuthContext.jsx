@@ -152,14 +152,43 @@ export const AuthProvider = ({ children }) => {
 
       // Extract specific error message from backend response
       let errorMessage = "Login failed. Please try again.";
+      let validationErrors = {};
 
       if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       } else if (error.response?.data?.errors) {
-        // Handle validation errors
+        // Handle validation errors - collect all field errors
         const errors = error.response.data.errors;
         if (Array.isArray(errors) && errors.length > 0) {
-          errorMessage = errors[0].msg || errors[0].message;
+          // Combine all validation errors into a user-friendly message
+          const errorMessages = errors.map((err) => {
+            const field = err.path || err.field || err.param || "";
+            const msg = err.msg || err.message || "Invalid value";
+            // Capitalize field name for better display
+            const fieldName = field
+              ? field.charAt(0).toUpperCase() + field.slice(1)
+              : "";
+            return fieldName ? `${fieldName}: ${msg}` : msg;
+          });
+
+          // Use first error as main message
+          errorMessage = errorMessages[0];
+
+          // Store all errors for field-specific display
+          errors.forEach((err) => {
+            const field = err.path || err.field || err.param;
+            if (field) {
+              validationErrors[field] =
+                err.msg || err.message || "Invalid value";
+            }
+          });
+
+          // If multiple errors, show count
+          if (errorMessages.length > 1) {
+            errorMessage += ` (and ${errorMessages.length - 1} more error${
+              errorMessages.length > 2 ? "s" : ""
+            })`;
+          }
         }
       } else if (error.message) {
         errorMessage = error.message;
@@ -168,6 +197,10 @@ export const AuthProvider = ({ children }) => {
       return {
         success: false,
         message: errorMessage,
+        errors:
+          Object.keys(validationErrors).length > 0
+            ? validationErrors
+            : undefined,
       };
     }
   };
@@ -214,14 +247,43 @@ export const AuthProvider = ({ children }) => {
 
       // Extract specific error message from backend response
       let errorMessage = "Registration failed. Please try again.";
+      let validationErrors = {};
 
       if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       } else if (error.response?.data?.errors) {
-        // Handle validation errors
+        // Handle validation errors - collect all field errors
         const errors = error.response.data.errors;
         if (Array.isArray(errors) && errors.length > 0) {
-          errorMessage = errors[0].msg || errors[0].message;
+          // Combine all validation errors into a user-friendly message
+          const errorMessages = errors.map((err) => {
+            const field = err.path || err.field || err.param || "";
+            const msg = err.msg || err.message || "Invalid value";
+            // Capitalize field name for better display
+            const fieldName = field
+              ? field.charAt(0).toUpperCase() + field.slice(1)
+              : "";
+            return fieldName ? `${fieldName}: ${msg}` : msg;
+          });
+
+          // Use first error as main message
+          errorMessage = errorMessages[0];
+
+          // Store all errors for field-specific display
+          errors.forEach((err) => {
+            const field = err.path || err.field || err.param;
+            if (field) {
+              validationErrors[field] =
+                err.msg || err.message || "Invalid value";
+            }
+          });
+
+          // If multiple errors, show count
+          if (errorMessages.length > 1) {
+            errorMessage += ` (and ${errorMessages.length - 1} more error${
+              errorMessages.length > 2 ? "s" : ""
+            })`;
+          }
         }
       } else if (error.message) {
         errorMessage = error.message;
@@ -230,6 +292,10 @@ export const AuthProvider = ({ children }) => {
       return {
         success: false,
         message: errorMessage,
+        errors:
+          Object.keys(validationErrors).length > 0
+            ? validationErrors
+            : undefined,
       };
     }
   };

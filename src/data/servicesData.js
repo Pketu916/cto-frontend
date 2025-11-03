@@ -1,3 +1,5 @@
+import { myCRTServicesData } from "./myCRTServicesData";
+
 export const servicesData = [
   {
     id: "telehealth-virtual-consultations",
@@ -34,6 +36,8 @@ export const servicesData = [
       },
     ],
     slug: "telehealth-virtual-consultations",
+    insuranceAvailable: true, // Health service with insurance
+    basePrice: 500,
   },
   {
     id: "digital-diagnostics",
@@ -71,6 +75,8 @@ export const servicesData = [
       },
     ],
     slug: "digital-diagnostics",
+    insuranceAvailable: true, // Health service with insurance
+    basePrice: 1500,
   },
   {
     id: "nursing-home-care",
@@ -108,6 +114,8 @@ export const servicesData = [
       },
     ],
     slug: "nursing-home-care",
+    insuranceAvailable: true, // Health service with insurance
+    basePrice: 2000,
   },
   {
     id: "medical-drone-services",
@@ -145,6 +153,8 @@ export const servicesData = [
       },
     ],
     slug: "medical-drone-services",
+    insuranceAvailable: true, // Health service with insurance
+    basePrice: 1000,
   },
   {
     id: "workcare-occupational-health",
@@ -182,6 +192,8 @@ export const servicesData = [
       },
     ],
     slug: "workcare-occupational-health",
+    insuranceAvailable: true, // Health service with insurance
+    basePrice: 1500,
   },
   {
     id: "remote-monitoring-chronic-care",
@@ -219,6 +231,8 @@ export const servicesData = [
       },
     ],
     slug: "remote-monitoring-chronic-care",
+    insuranceAvailable: true, // Health service with insurance
+    basePrice: 3000,
   },
   {
     id: "remote-triage-screening",
@@ -256,6 +270,8 @@ export const servicesData = [
       },
     ],
     slug: "remote-triage-screening",
+    insuranceAvailable: true, // Health service with insurance
+    basePrice: 800,
   },
   {
     id: "diagnostics-interpretation",
@@ -293,6 +309,8 @@ export const servicesData = [
       },
     ],
     slug: "diagnostics-interpretation",
+    insuranceAvailable: true, // Health service with insurance
+    basePrice: 2000,
   },
   {
     id: "emergency-response-coordination",
@@ -330,5 +348,20 @@ export const servicesData = [
       },
     ],
     slug: "emergency-response-coordination",
+    insuranceAvailable: true, // Health service with insurance
+    basePrice: 5000,
   },
+
+  // Add all myCRT services to the main services array
+  ...myCRTServicesData,
 ];
+
+// Export combined services with categories
+export const allServicesWithCategories = {
+  standardServices: servicesData.slice(
+    0,
+    servicesData.length - myCRTServicesData.length
+  ),
+  myCRTServices: myCRTServicesData,
+  allServices: servicesData,
+};

@@ -6,3 +6,4 @@ export { default as homeHero } from "./homeHero";
 export { default as Marquee } from "./Marquee";
 export { default as ServicesSection } from "./ServicesSection";
 export { default as GsapMarquee } from "./GsapMarquee";
+export { default as ScrollCar } from "./ScrollCar";

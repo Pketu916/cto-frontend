@@ -21,6 +21,7 @@ import Badge from "../ui/Badge";
 import Modal from "../ui/Modal";
 import Input from "../ui/Input";
 import Select from "../ui/Select";
+import LoadingSpinner from "../ui/LoadingSpinner";
 
 const ProviderManagementTab = ({ stats = {}, onStatsUpdate }) => {
   const { showSuccess, showError } = useToast();
@@ -59,9 +60,10 @@ const ProviderManagementTab = ({ stats = {}, onStatsUpdate }) => {
     setLoading(true);
     try {
       const params = {
-        status: filters.status !== "all" ? filters.status : undefined,
         page,
         limit: 10,
+        status: filters.status !== "all" ? filters.status : undefined,
+        search: filters.search || undefined,
       };
 
       const response = await adminAPI.getProviders(params);
@@ -83,8 +85,8 @@ const ProviderManagementTab = ({ stats = {}, onStatsUpdate }) => {
   };
 
   useEffect(() => {
-    fetchProviders();
-  }, [filters.status]);
+    fetchProviders(1);
+  }, [filters.status, filters.search]);
 
   // Update provider status
   const handleStatusUpdate = async () => {
@@ -130,90 +132,48 @@ const ProviderManagementTab = ({ stats = {}, onStatsUpdate }) => {
       setSelectedProvider(null);
     } catch (error) {
       console.error("Error updating provider status:", error);
-      showError("Failed to update provider status");
+      showError(
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to update provider status"
+      );
     }
   };
 
-  // Open status update modal
-  const openStatusModal = (provider) => {
-    console.log("🔧 Opening Status Modal:", {
-      provider: provider.name,
-      currentStatus: provider.verificationStatus,
-      currentNotes: provider.verificationNotes,
-    });
-
+  const handleViewDetails = (provider) => {
     setSelectedProvider(provider);
-    setStatusUpdate({
-      status: provider.verificationStatus,
-      notes: provider.verificationNotes || "",
-    });
-    setShowStatusModal(true);
+    setShowDetailsModal(true);
   };
 
-  // Open provider details modal
-  const openDetailsModal = async (provider) => {
-    try {
-      const response = await adminAPI.getProviderDetails(provider._id);
-      setSelectedProvider(response.data.provider);
-      setShowDetailsModal(true);
-    } catch (error) {
-      console.error("Error fetching provider details:", error);
-      showError("Failed to load provider details");
-    }
-  };
-
-  // Get status color
   const getStatusColor = (status) => {
     switch (status) {
-      case "approved":
-        return "green";
       case "pending":
         return "yellow";
+      case "approved":
+        return "green";
       case "rejected":
         return "red";
       case "suspended":
-        return "red";
+        return "orange";
       default:
         return "gray";
     }
   };
 
-  // Get status icon
   const getStatusIcon = (status) => {
     switch (status) {
-      case "approved":
-        return CheckCircle;
       case "pending":
         return AlertTriangle;
+      case "approved":
+        return CheckCircle;
       case "rejected":
         return XCircle;
       case "suspended":
-        return Shield;
+        return AlertTriangle;
       default:
         return AlertTriangle;
     }
   };
-
-  // Filter providers by search
-  const filteredProviders = providers.filter((provider) => {
-    if (!filters.search) return true;
-    const searchTerm = filters.search.toLowerCase();
-    return (
-      provider.name.toLowerCase().includes(searchTerm) ||
-      provider.email.toLowerCase().includes(searchTerm) ||
-      provider.professionalInfo?.specialization
-        ?.toLowerCase()
-        .includes(searchTerm)
-    );
-  });
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -298,376 +258,316 @@ const ProviderManagementTab = ({ stats = {}, onStatsUpdate }) => {
         </Card>
       </div>
 
-      {/* Filters */}
-      <Card padding="lg">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
-            <Input
-              type="text"
-              placeholder="Search providers..."
-              value={filters.search}
-              onChange={(e) =>
-                setFilters({ ...filters, search: e.target.value })
-              }
-              icon={Search}
-            />
-          </div>
-          <Select
-            value={filters.status}
-            onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-            options={[
-              { value: "all", label: "All Status" },
-              { value: "pending", label: "Pending" },
-              { value: "approved", label: "Approved" },
-              { value: "rejected", label: "Rejected" },
-              { value: "suspended", label: "Suspended" },
-            ]}
-          />
-        </div>
-      </Card>
-
       {/* Providers List */}
       <Card padding="lg">
-        <div className="space-y-4">
-          {filteredProviders.length === 0 ? (
-            <div className="text-center py-8">
-              <Shield className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                No providers found
-              </h3>
-              <p className="text-gray-600">
-                {filters.search || filters.status !== "all"
-                  ? "Try adjusting your search or filters"
-                  : "No providers have registered yet"}
-              </p>
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Provider Management
+          </h3>
+          <div className="flex items-center gap-4">
+            <div className="relative flex-1 max-w-xs">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search providers..."
+                value={filters.search}
+                onChange={(e) =>
+                  setFilters({ ...filters, search: e.target.value })
+                }
+                className="pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
             </div>
-          ) : (
-            filteredProviders.map((provider) => {
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-gray-500" />
+              <select
+                value={filters.status}
+                onChange={(e) =>
+                  setFilters({ ...filters, status: e.target.value })
+                }
+                className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="all">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+                <option value="suspended">Suspended</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <LoadingSpinner size="lg" />
+          </div>
+        ) : providers.length === 0 ? (
+          <div className="space-y-4">
+            <div className="text-center py-12">
+              <Shield className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">No providers found</p>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {providers.map((provider) => {
               const StatusIcon = getStatusIcon(provider.verificationStatus);
               return (
                 <div
                   key={provider._id}
                   className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex-shrink-0">
-                        {provider.documents?.profilePicture ? (
-                          <img
-                            src={provider.documents.profilePicture}
-                            alt={provider.name}
-                            className="h-12 w-12 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="h-12 w-12 bg-gray-200 rounded-full flex items-center justify-center">
-                            <User className="h-6 w-6 text-gray-500" />
-                          </div>
-                        )}
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h4 className="text-lg font-semibold text-gray-900">
+                          {provider.name}
+                        </h4>
+                        <Badge color={getStatusColor(provider.verificationStatus)}>
+                          <StatusIcon className="h-3 w-3 mr-1" />
+                          {provider.verificationStatus.replace("-", " ")}
+                        </Badge>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center space-x-2">
-                          <h3 className="text-lg font-semibold text-gray-900 truncate">
-                            {provider.name}
-                          </h3>
-                          <Badge
-                            color={getStatusColor(provider.verificationStatus)}
-                            icon={StatusIcon}
-                          >
-                            {provider.verificationStatus}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center space-x-4 text-sm text-gray-600 mt-1">
-                          <div className="flex items-center">
-                            <Mail className="h-4 w-4 mr-1" />
-                            {provider.email}
-                          </div>
-                          <div className="flex items-center">
-                            <Phone className="h-4 w-4 mr-1" />
-                            {provider.phone}
-                          </div>
-                          <div className="flex items-center">
-                            <MapPin className="h-4 w-4 mr-1" />
-                            {provider.address?.city}, {provider.address?.state}
-                          </div>
-                        </div>
-                        <div className="mt-2">
-                          <p className="text-sm text-gray-600">
-                            <strong>Specialization:</strong>{" "}
-                            {provider.professionalInfo?.specialization?.replace(
-                              "-",
-                              " "
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Provider Information */}
+                        <div className="space-y-2">
+                          <h5 className="font-medium text-gray-900 flex items-center text-sm">
+                            <Mail className="h-4 w-4 mr-2" />
+                            Contact
+                          </h5>
+                          <div className="space-y-1 text-sm">
+                            <p>
+                              <span className="font-medium">Email:</span>{" "}
+                              {provider.email}
+                            </p>
+                            {provider.phone && (
+                              <p className="flex items-center">
+                                <Phone className="h-3 w-3 mr-1" />
+                                {provider.phone}
+                              </p>
                             )}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            <strong>Experience:</strong>{" "}
-                            {provider.professionalInfo?.experience}
-                          </p>
-                        </div>
-                        {provider.verificationNotes && (
-                          <div className="mt-2 p-2 bg-gray-50 rounded text-sm">
-                            <strong>Admin Notes:</strong>{" "}
-                            {provider.verificationNotes}
                           </div>
-                        )}
+                        </div>
+
+                        {/* Professional Info */}
+                        <div className="space-y-2">
+                          <h5 className="font-medium text-gray-900 flex items-center text-sm">
+                            <Shield className="h-4 w-4 mr-2" />
+                            Professional Info
+                          </h5>
+                          <div className="space-y-1 text-sm">
+                            {provider.professionalInfo?.specialization && (
+                              <p>
+                                <span className="font-medium">Specialization:</span>{" "}
+                                {provider.professionalInfo.specialization
+                                  .replace(/-/g, " ")
+                                  .replace(/\b\w/g, (l) => l.toUpperCase())}
+                              </p>
+                            )}
+                            {provider.professionalInfo?.licenseNumber && (
+                              <p>
+                                <span className="font-medium">License:</span>{" "}
+                                {provider.professionalInfo.licenseNumber}
+                              </p>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openDetailsModal(provider)}
-                      >
-                        <Eye className="h-4 w-4 mr-1" />
-                        View Details
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => openStatusModal(provider)}
-                      >
-                        Update Status
-                      </Button>
-                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleViewDetails(provider)}
+                      className="flex items-center ml-4"
+                    >
+                      <Eye className="w-4 h-4 mr-1" />
+                      View Details
+                    </Button>
                   </div>
                 </div>
               );
-            })
-          )}
-        </div>
-
-        {/* Pagination */}
-        {pagination.totalPages > 1 && (
-          <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
-            <div className="text-sm text-gray-700">
-              Showing page {pagination.currentPage} of {pagination.totalPages}
-            </div>
-            <div className="flex space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={!pagination.hasPrev}
-                onClick={() => fetchProviders(pagination.currentPage - 1)}
-              >
-                Previous
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={!pagination.hasNext}
-                onClick={() => fetchProviders(pagination.currentPage + 1)}
-              >
-                Next
-              </Button>
-            </div>
+            })}
           </div>
         )}
       </Card>
 
       {/* Provider Details Modal */}
-      <Modal
-        isOpen={showDetailsModal}
-        onClose={() => setShowDetailsModal(false)}
-        title="Provider Details"
-        size="lg"
-      >
-        {selectedProvider && (
+      {selectedProvider && (
+        <Modal
+          isOpen={showDetailsModal}
+          onClose={() => setShowDetailsModal(false)}
+          title="Provider Details"
+          size="lg"
+        >
           <div className="space-y-6">
-            {/* Basic Info */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  Basic Information
-                </h3>
-                <div className="space-y-3">
+            {/* Provider Info */}
+            <div>
+              <h4 className="text-sm font-medium text-gray-500 mb-2">
+                Provider Information
+              </h4>
+              <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                <div>
+                  <span className="text-sm font-medium text-gray-600">Name:</span>
+                  <p className="text-gray-900">{selectedProvider.name}</p>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-gray-600">Email:</span>
+                  <p className="text-gray-900">{selectedProvider.email}</p>
+                </div>
+                {selectedProvider.phone && (
                   <div>
-                    <label className="text-sm font-medium text-gray-600">
-                      Name
-                    </label>
-                    <p className="text-gray-900">{selectedProvider.name}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">
-                      Email
-                    </label>
-                    <p className="text-gray-900">{selectedProvider.email}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">
-                      Phone
-                    </label>
+                    <span className="text-sm font-medium text-gray-600">Phone:</span>
                     <p className="text-gray-900">{selectedProvider.phone}</p>
                   </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">
-                      Status
-                    </label>
-                    <Badge
-                      color={getStatusColor(
-                        selectedProvider.verificationStatus
-                      )}
-                    >
-                      {selectedProvider.verificationStatus}
-                    </Badge>
-                  </div>
+                )}
+                <div>
+                  <span className="text-sm font-medium text-gray-600">Status:</span>
+                  <Badge
+                    color={getStatusColor(selectedProvider.verificationStatus)}
+                    className="ml-2"
+                  >
+                    {selectedProvider.verificationStatus.replace("-", " ")}
+                  </Badge>
                 </div>
               </div>
+            </div>
 
+            {/* Professional Info */}
+            {selectedProvider.professionalInfo && (
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                <h4 className="text-sm font-medium text-gray-500 mb-2">
                   Professional Information
-                </h3>
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">
-                      Specialization
-                    </label>
-                    <p className="text-gray-900">
-                      {selectedProvider.professionalInfo?.specialization?.replace(
-                        "-",
-                        " "
-                      )}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">
-                      License Number
-                    </label>
-                    <p className="text-gray-900">
-                      {selectedProvider.professionalInfo?.licenseNumber}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">
-                      Experience
-                    </label>
-                    <p className="text-gray-900">
-                      {selectedProvider.professionalInfo?.experience}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">
-                      Hospital/Clinic
-                    </label>
-                    <p className="text-gray-900">
-                      {selectedProvider.professionalInfo?.hospital}
-                    </p>
-                  </div>
+                </h4>
+                <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                  {selectedProvider.professionalInfo.specialization && (
+                    <div>
+                      <span className="text-sm font-medium text-gray-600">
+                        Specialization:
+                      </span>
+                      <p className="text-gray-900">
+                        {selectedProvider.professionalInfo.specialization
+                          .replace(/-/g, " ")
+                          .replace(/\b\w/g, (l) => l.toUpperCase())}
+                      </p>
+                    </div>
+                  )}
+                  {selectedProvider.professionalInfo.licenseNumber && (
+                    <div>
+                      <span className="text-sm font-medium text-gray-600">
+                        License Number:
+                      </span>
+                      <p className="text-gray-900">
+                        {selectedProvider.professionalInfo.licenseNumber}
+                      </p>
+                    </div>
+                  )}
+                  {selectedProvider.professionalInfo.experience && (
+                    <div>
+                      <span className="text-sm font-medium text-gray-600">
+                        Experience:
+                      </span>
+                      <p className="text-gray-900">
+                        {selectedProvider.professionalInfo.experience} years
+                      </p>
+                    </div>
+                  )}
                 </div>
-              </div>
-            </div>
-
-            {/* Address */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Address
-              </h3>
-              <p className="text-gray-900">
-                {selectedProvider.address?.street},{" "}
-                {selectedProvider.address?.city},{" "}
-                {selectedProvider.address?.state} -{" "}
-                {selectedProvider.address?.pincode}
-              </p>
-            </div>
-
-            {/* Verification Notes */}
-            {selectedProvider.verificationNotes && (
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  Admin Notes
-                </h3>
-                <p className="text-gray-900 bg-gray-50 p-3 rounded">
-                  {selectedProvider.verificationNotes}
-                </p>
               </div>
             )}
 
-            {/* Actions */}
-            <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+            {/* Address */}
+            {selectedProvider.address && (
+              <div>
+                <h4 className="text-sm font-medium text-gray-500 mb-2 flex items-center">
+                  <MapPin className="w-4 h-4 mr-2" />
+                  Address
+                </h4>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-gray-900">
+                    {selectedProvider.address.street}
+                    {selectedProvider.address.city && (
+                      <>, {selectedProvider.address.city}</>
+                    )}
+                    {selectedProvider.address.state && (
+                      <>, {selectedProvider.address.state}</>
+                    )}
+                    {selectedProvider.address.pincode && (
+                      <> {selectedProvider.address.pincode}</>
+                    )}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end pt-4 border-t">
               <Button
                 variant="outline"
                 onClick={() => setShowDetailsModal(false)}
               >
                 Close
               </Button>
-              <Button onClick={() => openStatusModal(selectedProvider)}>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Status Update Modal */}
+      {selectedProvider && (
+        <Modal
+          isOpen={showStatusModal}
+          onClose={() => {
+            setShowStatusModal(false);
+            setStatusUpdate({ status: "", notes: "" });
+            setSelectedProvider(null);
+          }}
+          title="Update Provider Status"
+          size="md"
+        >
+          <div className="space-y-4">
+            <Select
+              label="Status"
+              value={statusUpdate.status}
+              onChange={(e) =>
+                setStatusUpdate({ ...statusUpdate, status: e.target.value })
+              }
+              options={[
+                { value: "pending", label: "Pending" },
+                { value: "approved", label: "Approved" },
+                { value: "rejected", label: "Rejected" },
+                { value: "suspended", label: "Suspended" },
+              ]}
+              required
+            />
+            <Input
+              label="Notes (Optional)"
+              type="textarea"
+              value={statusUpdate.notes}
+              onChange={(e) =>
+                setStatusUpdate({ ...statusUpdate, notes: e.target.value })
+              }
+              placeholder="Add notes about this status change"
+            />
+            <div className="flex justify-end gap-2 pt-4 border-t">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowStatusModal(false);
+                  setStatusUpdate({ status: "", notes: "" });
+                  setSelectedProvider(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleStatusUpdate}
+                disabled={!statusUpdate.status}
+              >
                 Update Status
               </Button>
             </div>
           </div>
-        )}
-      </Modal>
-
-      {/* Status Update Modal */}
-      <Modal
-        isOpen={showStatusModal}
-        onClose={() => setShowStatusModal(false)}
-        title="Update Provider Status"
-      >
-        {selectedProvider && (
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Provider
-              </label>
-              <p className="text-gray-900 font-medium">
-                {selectedProvider.name}
-              </p>
-              <p className="text-sm text-gray-600">{selectedProvider.email}</p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Status
-              </label>
-              <Select
-                value={statusUpdate.status}
-                onChange={(e) => {
-                  // Standard HTML select onChange passes event object
-                  const value = e.target.value;
-
-                  console.log("🔧 Select onChange Debug:", {
-                    event: e,
-                    targetValue: e.target.value,
-                    valueType: typeof value,
-                  });
-
-                  setStatusUpdate({ ...statusUpdate, status: value });
-                }}
-                options={[
-                  { value: "pending", label: "Pending" },
-                  { value: "approved", label: "Approved" },
-                  { value: "rejected", label: "Rejected" },
-                  { value: "suspended", label: "Suspended" },
-                ]}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Admin Notes (Optional)
-              </label>
-              <textarea
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                rows={4}
-                value={statusUpdate.notes}
-                onChange={(e) =>
-                  setStatusUpdate({ ...statusUpdate, notes: e.target.value })
-                }
-                placeholder="Add notes for the provider..."
-              />
-            </div>
-
-            <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-              <Button
-                variant="outline"
-                onClick={() => setShowStatusModal(false)}
-              >
-                Cancel
-              </Button>
-              <Button onClick={handleStatusUpdate}>Update Status</Button>
-            </div>
-          </div>
-        )}
-      </Modal>
+        </Modal>
+      )}
     </div>
   );
 };

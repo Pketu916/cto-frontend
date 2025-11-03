@@ -32,25 +32,25 @@ const getSchema = (userType) => {
   };
 
   if (userType === "provider") {
-    baseSchema.specialization = yup
-      .string()
-      .required("Specialization is required");
+    baseSchema.serviceType = yup.string().required("Service type is required");
     baseSchema.experience = yup
       .string()
       .required("Years of experience is required");
-    baseSchema.licenseNumber = yup
-      .string()
-      .required("License number is required");
-    baseSchema.qualification = yup
-      .string()
-      .required("Qualification is required");
-    baseSchema.hospital = yup
-      .string()
-      .required("Current hospital/clinic is required");
-    baseSchema.consultationFee = yup
+    baseSchema.certificationNumber = yup.string(); // Optional - only if provider has certifications
+    baseSchema.qualifications = yup.string(); // Optional - skills and qualifications
+    baseSchema.workplace = yup.string(); // Optional
+    baseSchema.serviceFee = yup
       .number()
-      .min(0, "Consultation fee must be positive")
-      .required("Consultation fee is required");
+      .min(0, "Service fee must be positive")
+      .required("Service fee is required");
+    // Address fields
+    baseSchema.street = yup.string().required("Street address is required");
+    baseSchema.city = yup.string().required("City is required");
+    baseSchema.state = yup.string().required("State is required");
+    baseSchema.pincode = yup
+      .string()
+      .matches(/^[1-9][0-9]{5}$/, "Please enter a valid 6-digit pincode")
+      .required("Pincode is required");
   }
 
   return yup.object(baseSchema);
@@ -74,6 +74,7 @@ const Register = () => {
     handleSubmit,
     formState: { errors },
     watch,
+    setError,
   } = useForm({
     resolver: yupResolver(schema),
   });
@@ -100,8 +101,22 @@ const Register = () => {
           navigate(dashboardPath, { replace: true });
         }, 2000);
       } else {
-        setRegisterError(result.message);
-        showError(result.message);
+        // Display the error message
+        const errorMsg =
+          result.message || "Registration failed. Please try again.";
+        setRegisterError(errorMsg);
+        showError(errorMsg);
+
+        // Set field-specific errors if available
+        if (result.errors) {
+          Object.keys(result.errors).forEach((field) => {
+            // Set error for the specific field using react-hook-form
+            setError(field, {
+              type: "server",
+              message: result.errors[field],
+            });
+          });
+        }
       }
     } catch (err) {
       const errorMessage =
@@ -113,17 +128,25 @@ const Register = () => {
     }
   };
 
-  const specializationOptions = [
+  const serviceTypeOptions = [
+    { value: "home-cleaning", label: "Home Cleaning" },
+    { value: "plumbing", label: "Plumbing" },
+    { value: "electrical", label: "Electrical" },
+    { value: "carpentry", label: "Carpentry" },
+    { value: "painting", label: "Painting" },
+    { value: "gardening", label: "Gardening/Landscaping" },
+    { value: "appliance-repair", label: "Appliance Repair" },
+    { value: "home-maintenance", label: "Home Maintenance" },
     { value: "general-medicine", label: "General Medicine" },
     { value: "cardiology", label: "Cardiology" },
-    { value: "neurology", label: "Neurology" },
-    { value: "orthopedics", label: "Orthopedics" },
     { value: "pediatrics", label: "Pediatrics" },
-    { value: "dermatology", label: "Dermatology" },
-    { value: "psychiatry", label: "Psychiatry" },
-    { value: "emergency-medicine", label: "Emergency Medicine" },
-    { value: "home-care", label: "Home Care" },
-    { value: "telehealth", label: "Telehealth" },
+    { value: "home-care", label: "Home Care/Nursing" },
+    { value: "telehealth", label: "Telehealth Consultation" },
+    { value: "beauty-services", label: "Beauty Services" },
+    { value: "fitness-training", label: "Fitness Training" },
+    { value: "tutoring", label: "Tutoring/Education" },
+    { value: "cooking", label: "Cooking/Chef Services" },
+    { value: "other", label: "Other Service" },
   ];
 
   const experienceOptions = [
@@ -216,13 +239,13 @@ const Register = () => {
             {isProvider && (
               <>
                 <Select
-                  label="Specialization"
-                  name="specialization"
-                  options={specializationOptions}
-                  placeholder="Select your specialization"
-                  error={errors.specialization?.message}
+                  label="Service Type"
+                  name="serviceType"
+                  options={serviceTypeOptions}
+                  placeholder="Select your service type"
+                  error={errors.serviceType?.message}
                   required
-                  {...register("specialization")}
+                  {...register("serviceType")}
                 />
 
                 <Select
@@ -236,41 +259,78 @@ const Register = () => {
                 />
 
                 <Input
-                  label="License Number"
-                  name="licenseNumber"
-                  placeholder="Enter your medical license number"
-                  error={errors.licenseNumber?.message}
-                  required
-                  {...register("licenseNumber")}
+                  label="Current Workplace/Company (Optional)"
+                  name="workplace"
+                  placeholder="Enter your current workplace or company name (optional)"
+                  error={errors.workplace?.message}
+                  {...register("workplace")}
                 />
 
                 <Input
-                  label="Qualification"
-                  name="qualification"
-                  placeholder="Enter your qualification (e.g., MBBS, MD)"
-                  error={errors.qualification?.message}
-                  required
-                  {...register("qualification")}
-                />
-
-                <Input
-                  label="Current Hospital/Clinic"
-                  name="hospital"
-                  placeholder="Enter your current hospital or clinic name"
-                  error={errors.hospital?.message}
-                  required
-                  {...register("hospital")}
-                />
-
-                <Input
-                  label="Consultation Fee (₹)"
-                  name="consultationFee"
+                  label="Service Fee (₹)"
+                  name="serviceFee"
                   type="number"
-                  placeholder="Enter consultation fee in rupees"
-                  error={errors.consultationFee?.message}
+                  placeholder="Enter your service fee per hour/service"
+                  error={errors.serviceFee?.message}
                   required
-                  {...register("consultationFee")}
+                  {...register("serviceFee")}
                 />
+
+                <Input
+                  label="Skills/Qualifications (Optional)"
+                  name="qualifications"
+                  placeholder="Enter your skills, certifications, or qualifications"
+                  error={errors.qualifications?.message}
+                  {...register("qualifications")}
+                />
+
+                <Input
+                  label="Certification/License Number (Optional)"
+                  name="certificationNumber"
+                  placeholder="Enter certification or license number if applicable"
+                  error={errors.certificationNumber?.message}
+                  {...register("certificationNumber")}
+                />
+
+                <div className="border-t border-gray-200 pt-4 mt-4">
+                  <h3 className="text-sm font-medium text-gray-900 mb-4">
+                    Location Information
+                  </h3>
+                  <Input
+                    label="Street Address"
+                    name="street"
+                    placeholder="Enter your street address"
+                    error={errors.street?.message}
+                    required
+                    {...register("street")}
+                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <Input
+                      label="City"
+                      name="city"
+                      placeholder="Enter your city"
+                      error={errors.city?.message}
+                      required
+                      {...register("city")}
+                    />
+                    <Input
+                      label="State"
+                      name="state"
+                      placeholder="Enter your state"
+                      error={errors.state?.message}
+                      required
+                      {...register("state")}
+                    />
+                  </div>
+                  <Input
+                    label="Pincode"
+                    name="pincode"
+                    placeholder="Enter 6-digit pincode"
+                    error={errors.pincode?.message}
+                    required
+                    {...register("pincode")}
+                  />
+                </div>
               </>
             )}
 

@@ -62,10 +62,10 @@ const Header = () => {
           <div className="flex flex-wrap justify-between items-center text-sm">
             <div className="flex flex-wrap gap-4">
               <span className="hover:text-secondary transition-colors duration-200">
-                📞 +91-9876543210
+                📞 1800 40 30 50
               </span>
               <span className="hover:text-secondary transition-colors duration-200">
-                📧 support@ctoindia.com
+                📧 info@mycrt.com.au
               </span>
             </div>
             <div className="flex gap-4 items-center">
@@ -97,7 +97,13 @@ const Header = () => {
                     to="/register/user"
                     className="hover:text-secondary transition-colors duration-200"
                   >
-                    Register
+                    Register as Customer
+                  </Link>
+                  <Link
+                    to="/register/provider"
+                    className="hover:text-secondary transition-colors duration-200"
+                  >
+                    Register as Provider
                   </Link>
                 </>
               )}
@@ -109,14 +115,14 @@ const Header = () => {
       {/* Main Navigation */}
       <nav className="bg-white">
         <div className="container">
-          <div className="flex items-center justify-between py-4">
+          <div className="flex items-center justify-between py-2">
             {/* Logo */}
             <div className="flex items-center">
               <Link to="/" className="flex items-center">
                 <img
                   src={Logo1}
                   alt="CTO India Logo"
-                  className="h-14 w-auto"
+                  className="h-12 w-auto object-contain"
                 />
               </Link>
             </div>
@@ -143,16 +149,16 @@ const Header = () => {
                 About
               </Link>
               <Link
-                to="/pricing"
+                to="/membership"
                 className="text-primary hover:text-secondary transition-colors duration-200 font-medium"
               >
-                Pricing
+                Membership
               </Link>
               <Link
-                to="/blog"
+                to="/how-it-works"
                 className="text-primary hover:text-secondary transition-colors duration-200 font-medium"
               >
-                Blog
+                How It Works
               </Link>
               <Link
                 to="/contact"
@@ -213,7 +219,7 @@ const Header = () => {
                             className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                             onClick={() => setIsUserMenuOpen(false)}
                           >
-                            Manage Patients
+                            Manage Customers
                           </Link>
                           <Link
                             to="/admin/providers"
@@ -233,7 +239,7 @@ const Header = () => {
                             className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                             onClick={() => setIsUserMenuOpen(false)}
                           >
-                            Patient Requests
+                            Service Requests
                           </Link>
                         </>
                       )}
@@ -304,18 +310,18 @@ const Header = () => {
                 About
               </Link>
               <Link
-                to="/pricing"
+                to="/membership"
                 className="block px-3 py-2 text-base font-medium text-primary hover:text-secondary hover:bg-gray-50 rounded-md"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                Pricing
+                Membership
               </Link>
               <Link
-                to="/blog"
+                to="/how-it-works"
                 className="block px-3 py-2 text-base font-medium text-primary hover:text-secondary hover:bg-gray-50 rounded-md"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                Blog
+                How It Works
               </Link>
               <Link
                 to="/contact"
@@ -359,7 +365,7 @@ const Header = () => {
                         className="block px-3 py-2 text-base font-medium text-primary hover:text-secondary hover:bg-gray-50 rounded-md"
                         onClick={() => setIsMobileMenuOpen(false)}
                       >
-                        Manage Patients
+                        Manage Customers
                       </Link>
                       <Link
                         to="/admin/providers"
@@ -377,7 +383,7 @@ const Header = () => {
                       className="block px-3 py-2 text-base font-medium text-primary hover:text-secondary hover:bg-gray-50 rounded-md"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
-                      Patient Requests
+                      Service Requests
                     </Link>
                   )}
 

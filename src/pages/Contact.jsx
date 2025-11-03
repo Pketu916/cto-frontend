@@ -73,7 +73,7 @@ const Contact = () => {
         </svg>
       ),
       title: "Phone",
-      details: ["+91-9876543210", "+91-8765432109"],
+      details: ["1800 40 30 50", "24/7 Call Centre"],
       action: "Call Now",
     },
     {
@@ -93,7 +93,7 @@ const Contact = () => {
         </svg>
       ),
       title: "Email",
-      details: ["support@ctoindia.com", "info@ctoindia.com"],
+      details: ["info@mycrt.com.au", "support@mycrt.com.au"],
       action: "Send Email",
     },
     {
@@ -119,11 +119,7 @@ const Contact = () => {
         </svg>
       ),
       title: "Address",
-      details: [
-        "CTO India Office",
-        "Tech Park, Sector 5",
-        "Gurgaon, Haryana 122001",
-      ],
+      details: ["MyCRT Office", "Australia", "Available Australia-wide"],
       action: "Get Directions",
     },
     {
@@ -142,11 +138,11 @@ const Contact = () => {
           />
         </svg>
       ),
-      title: "Working Hours",
+      title: "Service Availability",
       details: [
-        "Monday - Friday: 9:00 AM - 6:00 PM",
-        "Saturday: 10:00 AM - 4:00 PM",
-        "Sunday: Closed",
+        "24/7 Care Response Service",
+        "Emergency & After-Hours Support",
+        "Online Booking Available Anytime",
       ],
       action: "View Schedule",
     },
@@ -257,9 +253,9 @@ const Contact = () => {
                           onChange={handleInputChange}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         >
-                          <option value="user">Patient</option>
-                          <option value="provider">Healthcare Provider</option>
-                          <option value="business">Medical Business</option>
+                          <option value="user">Customer</option>
+                          <option value="provider">Service Provider</option>
+                          <option value="business">Business</option>
                           <option value="other">Other</option>
                         </select>
                       </div>

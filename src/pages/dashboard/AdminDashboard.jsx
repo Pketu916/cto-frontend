@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../../contexts/ToastContext";
-import { useNavigate } from "react-router-dom";
 import {
   Users,
   Shield,
@@ -9,19 +8,19 @@ import {
   TrendingUp,
   RefreshCw,
   AlertCircle,
-  Settings,
 } from "lucide-react";
 import Button from "../../components/ui/Button";
 import Card from "../../components/ui/Card";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
 import ProviderManagementTab from "../../components/dashboard/ProviderManagementTab";
+import UserManagementTab from "../../components/dashboard/UserManagementTab";
+import BookingManagementTab from "../../components/dashboard/BookingManagementTab";
 import ErrorBoundary from "../../components/ErrorBoundary";
 import api from "../../services/api";
 
 const AdminDashboard = () => {
   const { user, logout } = useAuth();
   const { showSuccess, showError } = useToast();
-  const navigate = useNavigate();
   const [selectedTab, setSelectedTab] = useState("overview");
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState({
@@ -78,21 +77,14 @@ const AdminDashboard = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">
+              <h1 className="text-3xl font-bold text-gray-900 m-0">
                 Admin Dashboard
               </h1>
-              <p className="text-gray-600">Welcome, {user?.name}</p>
+              <p className="text-gray-600 m-0">Welcome, {user?.name}</p>
             </div>
             <div className="flex items-center space-x-4">
               <Button
-                variant="outline"
-                onClick={() => navigate("/settings")}
-                className="flex items-center"
-              >
-                <Settings className="w-4 h-4 mr-2" />
-                Settings
-              </Button>
-              <Button
+                size="sm"
                 variant="outline"
                 onClick={fetchStats}
                 disabled={loading}
@@ -103,7 +95,7 @@ const AdminDashboard = () => {
                 />
                 Refresh
               </Button>
-              <Button variant="outline" onClick={logout}>
+              <Button size="sm" variant="outline" onClick={logout}>
                 Logout
               </Button>
             </div>
@@ -245,32 +237,9 @@ const AdminDashboard = () => {
 
         {/* Users Management Tab */}
         {selectedTab === "users" && (
-          <div className="space-y-6">
-            <Card padding="lg">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  User Management
-                </h3>
-                <Button variant="outline" size="sm">
-                  Export Users
-                </Button>
-              </div>
-              <div className="text-center py-8">
-                <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h4 className="text-lg font-medium text-gray-900 mb-2">
-                  User Management
-                </h4>
-                <p className="text-gray-600 mb-4">
-                  Manage user accounts, view user activity, and handle
-                  user-related issues.
-                </p>
-                <div className="text-sm text-gray-500">
-                  Total Active Users:{" "}
-                  <span className="font-semibold">{stats.totalUsers}</span>
-                </div>
-              </div>
-            </Card>
-          </div>
+          <ErrorBoundary>
+            <UserManagementTab stats={stats} />
+          </ErrorBoundary>
         )}
 
         {/* Providers Management Tab */}
@@ -282,35 +251,9 @@ const AdminDashboard = () => {
 
         {/* Bookings Management Tab */}
         {selectedTab === "bookings" && (
-          <div className="space-y-6">
-            <Card padding="lg">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Booking Management
-                </h3>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
-                    Export Bookings
-                  </Button>
-                  <Button size="sm">View All Bookings</Button>
-                </div>
-              </div>
-              <div className="text-center py-8">
-                <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h4 className="text-lg font-medium text-gray-900 mb-2">
-                  Booking Management
-                </h4>
-                <p className="text-gray-600 mb-4">
-                  Monitor bookings, handle booking issues, and track service
-                  delivery.
-                </p>
-                <div className="text-sm text-gray-500">
-                  Total Bookings:{" "}
-                  <span className="font-semibold">{stats.totalBookings}</span>
-                </div>
-              </div>
-            </Card>
-          </div>
+          <ErrorBoundary>
+            <BookingManagementTab stats={stats} />
+          </ErrorBoundary>
         )}
       </div>
     </div>

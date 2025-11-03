@@ -8,14 +8,16 @@ This style guide defines the design system for the CTO India project, including 
 
 ### Primary Colors
 
-- **Primary**: `#012939` - Dark teal/navy blue used for main text and primary elements
-- **Secondary**: `#a0f92d` - Bright lime green used for accents and secondary actions
+- **Primary**: `#0B1F3B` - Dark blue used for main text and primary elements
+- **Secondary**: `#FF7A00` - Orange used for accents and secondary actions
+- **Accent**: `#6C4BC0` - Purple for highlights and special UI elements
 - **White**: `#ffffff` - Pure white for backgrounds and contrast
 
 ### Color Usage
 
-- **Primary (#012939)**: Headings, body text, primary buttons, navigation
-- **Secondary (#a0f92d)**: Call-to-action buttons, highlights, accents
+- **Primary (#0B1F3B)**: Headings, body text, primary buttons, navigation
+- **Secondary (#FF7A00)**: Call-to-action buttons, highlights, accents
+- **Accent (#6C4BC0)**: Emphasis elements, badges, focus rings
 - **White (#ffffff)**: Backgrounds, text on dark backgrounds, card backgrounds
 
 ## Typography
@@ -154,8 +156,9 @@ All design tokens are available as CSS custom properties:
 ```css
 :root {
   /* Colors */
-  --color-primary: #012939;
-  --color-secondary: #a0f92d;
+  --color-primary: #0b1f3b; /* dark blue */
+  --color-secondary: #ff7a00; /* orange */
+  --color-accent: #6c4bc0; /* purple */
   --color-white: #ffffff;
 
   /* Typography */
@@ -203,8 +206,9 @@ The Tailwind configuration has been extended with custom values:
 theme: {
   extend: {
     colors: {
-      primary: '#012939',
-      secondary: '#a0f92d',
+      primary: '#0B1F3B',
+      secondary: '#FF7A00',
+      accent: '#6C4BC0',
       white: '#ffffff',
     },
     fontFamily: {

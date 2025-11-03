@@ -21,7 +21,7 @@ const ResourceCard = ({ title, image, logo, color = "white" }) => {
         <div className="absolute bottom-4 left-4 right-4">
           <h3
             className={`text-lg font-bold ${
-              color === "green" ? "text-[#83D915]" : "text-white"
+              color === "green" ? "text-secondary" : "text-white"
             }`}
           >
             {title}
