@@ -68,8 +68,8 @@ export const PAYMENT_METHODS = [
 
 // Step labels
 export const STEP_LABELS = {
-  1: "Basic Info",
+  1: "Service Selection",
   2: "Schedule",
-  3: "Details",
+  3: "Customer Info",
   4: "Payment",
 };

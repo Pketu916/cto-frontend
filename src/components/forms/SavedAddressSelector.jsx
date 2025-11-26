@@ -1,11 +1,12 @@
 import React, { useState } from "react";
-import { MapPin, Plus, Check } from "lucide-react";
+import { MapPin, Plus, Check, X, Trash2 } from "lucide-react";
 
 const SavedAddressSelector = ({
   savedAddresses,
   onSelectAddress,
   selectedAddressId,
   onAddNew,
+  onDeleteAddress,
   isLoading,
 }) => {
   const [isExpanded, setIsExpanded] = useState(savedAddresses.length > 0);
@@ -48,64 +49,89 @@ const SavedAddressSelector = ({
 
       {isExpanded && (
         <div className="space-y-2 max-h-64 overflow-y-auto pr-2 border border-gray-200 rounded-lg p-2 bg-gray-50">
-          {savedAddresses.map((address, index) => (
-            <div
-              key={address.id || index}
-              onClick={() => onSelectAddress(address)}
-              className={`p-3 border-2 rounded-lg cursor-pointer transition-all ${
-                selectedAddressId === (address.id || index)
-                  ? "border-blue-500 bg-blue-50"
-                  : "border-gray-200 hover:border-gray-300 bg-white"
-              }`}
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center mb-2">
-                    {selectedAddressId === (address.id || index) && (
-                      <Check className="w-4 h-4 text-blue-600 mr-2" />
-                    )}
-                    <span className="text-sm font-medium text-gray-900">
-                      {address.label || `Address ${index + 1}`}
-                    </span>
-                    {address.isDefault && (
-                      <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded">
-                        Default
+          {savedAddresses.map((address, index) => {
+            const addressId = address.id || `addr_${index}`;
+            return (
+              <div
+                key={addressId}
+                onClick={(e) => {
+                  // Don't trigger if clicking delete button
+                  if (e.target.closest(".delete-btn")) return;
+                  onSelectAddress(address, addressId);
+                  setIsExpanded(false); // Auto-hide on click
+                }}
+                className={`p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                  selectedAddressId === addressId
+                    ? "border-blue-500 bg-blue-50"
+                    : "border-gray-200 hover:border-gray-300 bg-white"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center mb-1.5 gap-1.5">
+                      {selectedAddressId === addressId && (
+                        <Check className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                      )}
+                      <span className="text-sm font-medium text-gray-900 truncate">
+                        {address.label || `Address ${index + 1}`}
                       </span>
-                    )}
+                      {address.isDefault && (
+                        <span className="px-1.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded flex-shrink-0">
+                          Default
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-gray-600 space-y-0.5">
+                      {address.name && (
+                        <p className="truncate">
+                          <span className="font-medium">Name:</span>{" "}
+                          {address.name}
+                        </p>
+                      )}
+                      {address.address && (
+                        <p className="line-clamp-1 text-xs">
+                          {address.address}
+                        </p>
+                      )}
+                      <p className="truncate">
+                        {address.city && `${address.city}, `}
+                        {address.state}
+                        {address.pincode && ` - ${address.pincode}`}
+                      </p>
+                      {address.phone && (
+                        <p className="truncate">
+                          <span className="font-medium">Phone:</span>{" "}
+                          {address.phone}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-sm text-gray-600 space-y-1">
-                    {address.name && (
-                      <p>
-                        <span className="font-medium">Name:</span>{" "}
-                        {address.name}
-                      </p>
-                    )}
-                    {address.address && (
-                      <p className="line-clamp-2">{address.address}</p>
-                    )}
-                    <p>
-                      {address.city && `${address.city}, `}
-                      {address.state}
-                      {address.pincode && ` - ${address.pincode}`}
-                    </p>
-                    {address.phone && (
-                      <p>
-                        <span className="font-medium">Phone:</span>{" "}
-                        {address.phone}
-                      </p>
-                    )}
+                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onDeleteAddress) {
+                          onDeleteAddress(addressId);
+                        }
+                      }}
+                      className="delete-btn p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                      title="Delete address"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                    <MapPin
+                      className={`w-4 h-4 ${
+                        selectedAddressId === addressId
+                          ? "text-blue-600"
+                          : "text-gray-400"
+                      }`}
+                    />
                   </div>
                 </div>
-                <MapPin
-                  className={`w-5 h-5 ml-2 ${
-                    selectedAddressId === (address.id || index)
-                      ? "text-blue-600"
-                      : "text-gray-400"
-                  }`}
-                />
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           {onAddNew && (
             <button

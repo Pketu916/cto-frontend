@@ -6,47 +6,43 @@ const ToastContext = createContext();
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
 
-  const addToast = useCallback(
-    (toast) => {
-      const id = Date.now() + Math.random();
-      const newToast = {
-        id,
-        duration: 5000,
-        position: "top-right",
-        type: "info",
-        title: "",
-        message: "",
-        ...toast,
-      };
+  const addToast = useCallback((toast) => {
+    const id = Date.now() + Math.random();
+    const newToast = {
+      id,
+      duration: 5000,
+      position: "top-right",
+      type: "info",
+      title: "",
+      message: "",
+      ...toast,
+    };
 
-      // Ensure title and message are strings
-      if (typeof newToast.title !== "string") {
-        newToast.title = "";
-      }
-      if (typeof newToast.message !== "string") {
-        newToast.message = String(newToast.message || "");
-      }
+    // Ensure title and message are strings
+    if (typeof newToast.title !== "string") {
+      newToast.title = "";
+    }
+    if (typeof newToast.message !== "string") {
+      newToast.message = String(newToast.message || "");
+    }
 
-      console.log("🔧 Adding Toast:", {
-        id: newToast.id,
-        type: newToast.type,
-        title: newToast.title,
-        message: newToast.message,
-        currentToastsCount: toasts.length,
+    console.log("🔧 Adding Toast:", {
+      id: newToast.id,
+      type: newToast.type,
+      title: newToast.title,
+      message: newToast.message,
+    });
+
+    setToasts((prev) => {
+      const updated = [...prev, newToast];
+      console.log("🔧 Toast State Updated:", {
+        previousCount: prev.length,
+        newCount: updated.length,
+        newToast: newToast.id,
       });
-
-      setToasts((prev) => {
-        const updated = [...prev, newToast];
-        console.log("🔧 Toast State Updated:", {
-          previousCount: prev.length,
-          newCount: updated.length,
-          newToast: newToast.id,
-        });
-        return updated;
-      });
-    },
-    [toasts.length]
-  );
+      return updated;
+    });
+  }, []);
 
   const removeToast = useCallback((id) => {
     console.log("🔧 Removing Toast:", { id });

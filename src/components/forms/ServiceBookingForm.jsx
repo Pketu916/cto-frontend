@@ -3,18 +3,19 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { bookingsAPI } from "../../services/api";
+import { bookingsAPI, servicesAPI } from "../../services/api";
 import { useToast } from "../../contexts/ToastContext";
 import { useSocket } from "../../contexts/SocketContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { bookingFormSchema } from "./bookingFormSchema";
 import { useLocationService } from "./useLocationService";
+import { formatAUD } from "../../utils/pricingUtils";
 import BookingFormHeader from "./BookingFormHeader";
 import StepIndicator from "./StepIndicator";
 import BookingFormFooter from "./BookingFormFooter";
-import CustomerInformationStep from "./CustomerInformationStep";
+import ServiceSelectionStep from "./ServiceSelectionStep";
 import ScheduleStep from "./ScheduleStep";
-import AdditionalInfoStep from "./AdditionalInfoStep";
+import CustomerInformationStep from "./CustomerInformationStep";
 import PaymentStep from "./PaymentStep";
 import SavedAddressSelector from "./SavedAddressSelector";
 
@@ -35,6 +36,11 @@ const ServiceBookingForm = ({
   const [isLoadingPreviousData, setIsLoadingPreviousData] = useState(false);
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState(null);
+  const [calculatedPrice, setCalculatedPrice] = useState(null);
+  const [isCalculatingPrice, setIsCalculatingPrice] = useState(false);
+  const [exactService, setExactService] = useState(null);
+  const [blockedSlots, setBlockedSlots] = useState([]);
+  const [selectedServices, setSelectedServices] = useState([]); // Multiple services
   const { showSuccess, showError } = useToast();
   const { emitBookingCreated } = useSocket();
   const { user, userType } = useAuth();
@@ -42,23 +48,27 @@ const ServiceBookingForm = ({
   const {
     register,
     handleSubmit,
-    formState: { errors, touchedFields },
+    formState: { errors, isValid, touchedFields, isSubmitted },
     watch,
     setValue,
     trigger,
-    clearErrors,
   } = useForm({
     resolver: yupResolver(bookingFormSchema),
-    mode: "onBlur", // Only validate after user leaves a field (onBlur)
-    reValidateMode: "onChange", // Re-validate on change after initial validation
-    criteriaMode: "firstError", // Show only first error per field
-    shouldFocusError: true, // Focus first error field when validation fails
+    mode: "onBlur", // Only validate on blur (when user leaves field)
+    reValidateMode: "onBlur", // Re-validate on blur
+    criteriaMode: "firstError",
+    shouldFocusError: true,
   });
+
+  // Watch form values to trigger validation updates
+  const formValues = watch();
 
   // Get fields that need validation for each step
   const getStepFields = (stepNumber) => {
     switch (stepNumber) {
       case 1:
+        return ["selectedServiceId"]; // Service Selection
+      case 2:
         return [
           "customerName",
           "customerAge",
@@ -69,14 +79,13 @@ const ServiceBookingForm = ({
           "city",
           "state",
           "pincode",
-        ];
-      case 2:
-        return []; // Date and time validation is handled separately
+          "serviceRequirements",
+        ]; // Customer Information (Address)
       case 3:
-        return ["serviceRequirements"];
+        return []; // Date and time validation is handled separately
       case 4:
         const fields = ["paymentMethod"];
-        if (service?.insuranceAvailable && useInsurance) {
+        if (useInsurance) {
           fields.push(
             "insuranceProvider",
             "insurancePolicyNumber",
@@ -89,11 +98,6 @@ const ServiceBookingForm = ({
     }
   };
 
-  // Validation will only trigger:
-  // 1. When user leaves a field (onBlur) - handled by form mode
-  // 2. When user clicks "Next" button - handled by nextStep function
-  // 3. When form is submitted - handled by handleFormSubmit
-
   // Use location service hook
   const { isGettingLocation, locationError, gpsLocation, getCurrentLocation } =
     useLocationService(setValue);
@@ -101,7 +105,6 @@ const ServiceBookingForm = ({
   // Fetch and prepare saved addresses from previous bookings
   useEffect(() => {
     const fetchSavedAddresses = async () => {
-      // Only fetch for logged-in users (not providers/admins booking on behalf)
       if (!user || userType !== "user") {
         return;
       }
@@ -115,7 +118,6 @@ const ServiceBookingForm = ({
           response.bookings &&
           response.bookings.length > 0
         ) {
-          // Extract unique addresses from all bookings
           const addressMap = new Map();
 
           response.bookings.forEach((booking, index) => {
@@ -123,12 +125,10 @@ const ServiceBookingForm = ({
             const address = booking.address;
 
             if (address && (address.city || address.state)) {
-              // Create a unique key based on address components
               const addressKey = `${address.street || ""}_${
                 address.city || ""
               }_${address.state || ""}_${address.pincode || ""}`.trim();
 
-              // Only add if we don't have this address already
               if (!addressMap.has(addressKey)) {
                 addressMap.set(addressKey, {
                   id: `addr_${index}`,
@@ -141,33 +141,25 @@ const ServiceBookingForm = ({
                   city: address.city || "",
                   state: address.state || "",
                   pincode: address.pincode || "",
-                  houseDetails: address.houseDetails || "", // Now stored in booking model
-                  isDefault: index === 0, // First booking address is default
+                  houseDetails: address.houseDetails || "",
+                  isDefault: index === 0,
                   bookingDate: booking.createdAt || booking.scheduledDate,
                 });
               }
             }
           });
 
-          // Convert Map to Array and sort by date (most recent first)
           const addressesArray = Array.from(addressMap.values()).sort(
             (a, b) => new Date(b.bookingDate) - new Date(a.bookingDate)
           );
 
-          // Mark the most recent as default
           if (addressesArray.length > 0) {
             addressesArray[0].isDefault = true;
           }
 
           setSavedAddresses(addressesArray);
-
-          // Auto-fill with the most recent address (default)
-          if (addressesArray.length > 0) {
-            handleAddressSelect(addressesArray[0], addressesArray[0].id);
-          }
         }
       } catch (error) {
-        // Silently fail - user can still fill the form manually
         console.log("Could not fetch previous booking data:", error);
       } finally {
         setIsLoadingPreviousData(false);
@@ -175,84 +167,77 @@ const ServiceBookingForm = ({
     };
 
     fetchSavedAddresses();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, userType]); // Only run when user or userType changes
+  }, [user, userType]);
 
   // Handle address selection
   const handleAddressSelect = async (address, addressId) => {
     setSelectedAddressId(addressId);
 
-    // Fill customer information with validation
+    // Set all values without triggering validation (validation will happen on blur)
     if (address.name) {
       setValue("customerName", address.name, {
-        shouldValidate: true,
+        shouldValidate: false, // Don't validate immediately
         shouldDirty: true,
       });
     }
     if (address.age) {
       setValue("customerAge", Number(address.age), {
-        shouldValidate: true,
+        shouldValidate: false,
         shouldDirty: true,
       });
     }
     if (address.phone) {
       setValue("customerPhone", address.phone, {
-        shouldValidate: true,
+        shouldValidate: false,
         shouldDirty: true,
       });
     }
     if (address.emergencyContact) {
       setValue("emergencyContact", address.emergencyContact, {
-        shouldValidate: true,
+        shouldValidate: false,
         shouldDirty: true,
       });
     }
-
-    // Fill address information with validation
     if (address.houseDetails) {
       setValue("houseDetails", address.houseDetails, {
-        shouldValidate: true,
+        shouldValidate: false,
         shouldDirty: true,
       });
     }
     if (address.address) {
       setValue("address", address.address, {
-        shouldValidate: true,
+        shouldValidate: false,
         shouldDirty: true,
       });
     }
     if (address.city) {
       setValue("city", address.city, {
-        shouldValidate: true,
+        shouldValidate: false,
         shouldDirty: true,
       });
     }
     if (address.state) {
       setValue("state", address.state, {
-        shouldValidate: true,
+        shouldValidate: false,
         shouldDirty: true,
       });
     }
     if (address.pincode) {
       setValue("pincode", address.pincode, {
-        shouldValidate: true,
+        shouldValidate: false,
         shouldDirty: true,
       });
     }
 
-    // Small delay to ensure all setValue calls complete, then trigger validation
-    setTimeout(async () => {
-      const step1Fields = getStepFields(1);
-      await trigger(step1Fields);
-    }, 100);
-
     showSuccess("Address selected and form filled!");
   };
+
+  // Note: Validation now happens on blur (when user leaves field) or on submit/next step
+  // Removed auto-validation on form value changes to prevent errors showing before user interaction
 
   // Handle adding new address
   const handleAddNewAddress = () => {
     setSelectedAddressId(null);
-    // Clear all form fields to allow new address entry
     setValue("customerName", "");
     setValue("customerAge", "");
     setValue("customerPhone", "");
@@ -264,63 +249,166 @@ const ServiceBookingForm = ({
     setValue("pincode", "");
   };
 
-  // Mock available slots - in real app, this would come from API
-  const availableSlots = [
-    "2024-01-15-09:00",
-    "2024-01-15-10:00",
-    "2024-01-15-11:00",
-    "2024-01-15-14:00",
-    "2024-01-15-15:00",
-    "2024-01-15-16:00",
-    "2024-01-16-09:00",
-    "2024-01-16-10:00",
-    "2024-01-16-11:00",
-    "2024-01-16-13:00",
-    "2024-01-16-14:00",
-    "2024-01-16-15:00",
-    "2024-01-17-09:00",
-    "2024-01-17-10:00",
-    "2024-01-17-14:00",
-    "2024-01-17-15:00",
-    "2024-01-17-16:00",
-    "2024-01-17-17:00",
-  ];
+  // Handle deleting saved address
+  const handleDeleteAddress = (addressId) => {
+    setSavedAddresses((prev) => {
+      const filtered = prev.filter((addr, index) => {
+        const addrId = addr.id || `addr_${index}`;
+        return addrId !== addressId;
+      });
+      return filtered;
+    });
+    if (selectedAddressId === addressId) {
+      setSelectedAddressId(null);
+      handleAddNewAddress(); // Clear form
+    }
+    showSuccess("Address deleted successfully!");
+  };
+
+  // Manual function to calculate pricing when user clicks button
+  const calculatePricing = async () => {
+    const formState = watch();
+    const selectedServiceId = formState.selectedServiceId;
+    const state = formState.state;
+
+    // Validate required fields
+    if (!selectedServiceId) {
+      showError("Please select a Service ID first");
+      return;
+    }
+
+    if (!selectedDate) {
+      showError("Please select a date first");
+      return;
+    }
+
+    if (!selectedTime) {
+      showError("Please select a time first");
+      return;
+    }
+
+    if (!state) {
+      showError(
+        "Please select state in Step 2 (Customer Information) to calculate pricing."
+      );
+      return;
+    }
+
+    setIsCalculatingPrice(true);
+    try {
+      const response = await servicesAPI.findServiceById(
+        selectedServiceId,
+        format(selectedDate, "yyyy-MM-dd"),
+        selectedTime,
+        state
+      );
+
+      if (response.success && response.service) {
+        setExactService(response.service);
+        // Set price - handle null, undefined, and empty string cases
+        const price = response.service.price;
+        if (
+          price !== null &&
+          price !== undefined &&
+          price !== "" &&
+          !isNaN(parseFloat(price))
+        ) {
+          setCalculatedPrice(parseFloat(price));
+          showSuccess("Pricing calculated successfully!");
+        } else {
+          setCalculatedPrice(null);
+          showError(
+            "Price not available for this service. Quotation required."
+          );
+        }
+      } else {
+        setExactService(null);
+        setCalculatedPrice(null);
+        showError("Service not found. Please check your selections.");
+      }
+    } catch (error) {
+      console.error("Error finding exact service:", error);
+      setExactService(null);
+      setCalculatedPrice(null);
+
+      if (error.response?.status === 429) {
+        showError("Too many requests. Please wait a moment and try again.");
+      } else {
+        showError("Failed to calculate pricing. Please try again.");
+      }
+    } finally {
+      setIsCalculatingPrice(false);
+    }
+  };
 
   const handleFormSubmit = async (data) => {
-    console.log("Form submission started:", {
-      user,
-      selectedDate,
-      selectedTime,
-    });
-
     if (!user) {
       showError("Please login to book a service");
       return;
     }
 
-    // Check if all steps are valid before submission
-    const firstInvalidStep = [1, 2, 3, 4].find(
-      (stepNum) => !isStepValid(stepNum)
-    );
-    if (firstInvalidStep) {
-      setStep(firstInvalidStep);
+    // Validate all steps before submitting
+    const allStepFields = [
+      ...getStepFields(1),
+      ...getStepFields(2),
+      ...getStepFields(4),
+    ];
+
+    // Trigger validation for all form fields
+    const isFormValid = await trigger(allStepFields);
+
+    // Check each step validity
+    const step1Valid = isStepValid(1);
+    const step2Valid = isStepValid(2);
+    const step3Valid = isStepValid(3);
+    const step4Valid = isStepValid(4);
+
+    if (!step1Valid) {
+      setStep(1);
       showError(
-        `Please complete step ${firstInvalidStep} before submitting the form.`
+        "Please complete step 1 (Service Selection) before submitting."
       );
       return;
     }
 
+    if (!step2Valid) {
+      setStep(2);
+      showError(
+        "Please complete step 2 (Customer Information) before submitting."
+      );
+      return;
+    }
+
+    if (!step3Valid) {
+      setStep(3);
+      showError("Please complete step 3 (Date & Time) before submitting.");
+      return;
+    }
+
+    if (!step4Valid) {
+      setStep(4);
+      showError("Please complete step 4 (Payment) before submitting.");
+      return;
+    }
+
+    if (!isFormValid) {
+      const fieldsWithErrors = allStepFields.filter((field) => errors[field]);
+      if (fieldsWithErrors.length > 0) {
+        showError(`Please fix errors in: ${fieldsWithErrors.join(", ")}`);
+        return;
+      }
+    }
+
     if (!selectedDate || !selectedTime) {
-      setStep(2); // Navigate to schedule step
+      setStep(2);
       showError("Please select date and time");
       return;
     }
 
-    // Validate service selection - either pre-selected service or dropdown selection required
-    const finalServiceId = data.selectedServiceFromDropdown || service?.id;
+    const finalServiceId = data.selectedServiceId;
     if (!finalServiceId) {
-      setStep(3); // Navigate to additional info step (service selection step)
-      showError("Please select a service to continue");
+      setStep(1);
+      showError("Please select a Service ID to continue");
       return;
     }
 
@@ -329,8 +417,8 @@ const ServiceBookingForm = ({
     try {
       const bookingData = {
         serviceId: finalServiceId,
+        supportItemNumber: exactService?.supportItemNumber || null,
         selectedCategory: data.selectedCategory || null,
-        selectedServiceFromDropdown: data.selectedServiceFromDropdown || null,
         selectedDate: format(selectedDate, "yyyy-MM-dd"),
         selectedTimeSlot: selectedTime,
         customerName: data.customerName,
@@ -355,56 +443,100 @@ const ServiceBookingForm = ({
               verified: insuranceVerified,
             }
           : null,
+        serviceDetails: exactService
+          ? {
+              serviceId: exactService.serviceId || finalServiceId,
+              serviceName:
+                exactService.supportItemName ||
+                service?.name ||
+                service?.title ||
+                null,
+              supportItemNumber: exactService.supportItemNumber || null,
+              price:
+                exactService.price ??
+                calculatedPrice ??
+                exactService.estimatedPrice ??
+                null,
+              priceType: exactService.priceType || null,
+              condition:
+                exactService.determinedCondition ||
+                exactService.condition ||
+                null,
+              unit: exactService.unit || null,
+              quote: exactService.quote || null,
+              registrationGroup: exactService.registrationGroup || null,
+              category:
+                exactService.category ||
+                service?.category ||
+                data.selectedCategory ||
+                null,
+            }
+          : null,
       };
 
-      console.log("Sending booking data:", bookingData);
-      console.log("Service data:", service);
-      console.log("User data:", user);
-
       const response = await bookingsAPI.createBooking(bookingData);
-      console.log("Booking response:", response);
 
       if (response.success) {
-        showSuccess(
-          "Booking created successfully! You will receive a confirmation shortly."
-        );
+        // Check if quotation was created instead of booking
+        if (response.requiresQuotation && response.quotation) {
+          showSuccess(
+            "Service pricing not available. Quotation request created. Admin will review and provide pricing shortly. You will receive an email notification once the quotation is ready."
+          );
 
-        // Emit booking created event for real-time notifications
-        emitBookingCreated({
-          bookingId: response.booking.id,
-          bookingNumber: response.booking.bookingNumber,
-          service: service?.title || "Service",
-          customerName: data.customerName,
-          scheduledDate: selectedDate,
-          scheduledTime: selectedTime,
-          address: `${data.address}, ${data.city}`,
-          serviceRequirements: data.serviceRequirements,
-        });
+          if (onBookingSuccess) {
+            onBookingSuccess({
+              success: true,
+              quotation: response.quotation,
+              message: "Quotation request created successfully!",
+              requiresQuotation: true,
+            });
+          }
 
-        // Call success callback with full response
-        if (onBookingSuccess) {
-          onBookingSuccess({
-            success: true,
-            booking: response.booking,
-            message: "Booking created successfully!",
+          const dashboardPath =
+            userType === "provider"
+              ? "/provider/dashboard"
+              : userType === "admin"
+              ? "/admin/dashboard"
+              : "/user/dashboard";
+          navigate(dashboardPath);
+        } else {
+          // Normal booking created
+          showSuccess(
+            "Booking created successfully! You will receive a confirmation shortly."
+          );
+
+          emitBookingCreated({
+            bookingId: response.booking.id,
+            bookingNumber: response.booking.bookingNumber,
+            service: exactService?.supportItemName || "Service",
+            customerName: data.customerName,
+            scheduledDate: selectedDate,
+            scheduledTime: selectedTime,
+            address: `${data.address}, ${data.city}`,
+            serviceRequirements: data.serviceRequirements,
           });
-        }
 
-        // Redirect to appropriate dashboard after successful booking
-        const dashboardPath =
-          userType === "provider"
-            ? "/provider/dashboard"
-            : userType === "admin"
-            ? "/admin/dashboard"
-            : "/user/dashboard";
-        navigate(dashboardPath);
+          if (onBookingSuccess) {
+            onBookingSuccess({
+              success: true,
+              booking: response.booking,
+              message: "Booking created successfully!",
+            });
+          }
+
+          const dashboardPath =
+            userType === "provider"
+              ? "/provider/dashboard"
+              : userType === "admin"
+              ? "/admin/dashboard"
+              : "/user/dashboard";
+          navigate(dashboardPath);
+        }
       } else {
         showError(response.message || "Failed to create booking");
       }
     } catch (error) {
       console.error("Booking error:", error);
-
-      // Show user-friendly error messages
       let errorMessage = "Failed to create booking. Please try again.";
 
       if (error.response?.data?.message) {
@@ -432,15 +564,12 @@ const ServiceBookingForm = ({
   };
 
   const nextStep = async () => {
-    // Validate current step before proceeding
     const currentStepFields = getStepFields(step);
     let isValid = true;
 
-    // Validate form fields for current step
     if (currentStepFields.length > 0) {
       isValid = await trigger(currentStepFields);
 
-      // If validation fails, find which fields have errors
       if (!isValid) {
         const fieldsWithErrors = currentStepFields.filter(
           (field) => errors[field]
@@ -455,23 +584,28 @@ const ServiceBookingForm = ({
       }
     }
 
-    // Additional validation for step 2 (date/time selection)
-    if (step === 2) {
+    // Additional validation for step 3 (date/time selection)
+    if (step === 3) {
       if (!selectedDate) {
         showError("Please select a date for your appointment.");
         return;
       }
       if (!selectedTime) {
-        showError("Please select a time slot for your appointment.");
+        showError("Please enter hour and minute for your appointment time.");
         return;
+      }
+      // Check if state is selected (needed for exact service finding)
+      const state = watch("state");
+      if (!state) {
+        showError(
+          "Please select state in step 2 first, or we'll use default pricing."
+        );
       }
     }
 
-    // Double check with isStepValid before proceeding
     if (isValid && isStepValid(step)) {
       setStep(step + 1);
     } else {
-      // Show error message for current step
       const fieldsWithErrors = currentStepFields.filter((field) => {
         const formData = watch();
         const fieldValue = formData[field];
@@ -491,27 +625,26 @@ const ServiceBookingForm = ({
     }
   };
 
-  // Check if a step is valid
   const isStepValid = (stepNumber) => {
     const stepFields = getStepFields(stepNumber);
     const formData = watch();
 
-    // Check form field validation
     if (stepFields.length > 0) {
-      // Check if there are any validation errors
       const hasValidationErrors = stepFields.some((field) => {
-        return !!errors[field]; // Check if error exists
+        return !!errors[field];
       });
 
       if (hasValidationErrors) {
         return false;
       }
 
-      // For step 1, also verify values are present (React Hook Form may not trigger on empty fields immediately)
       if (stepNumber === 1) {
+        return !!formData.selectedServiceId;
+      }
+
+      if (stepNumber === 2) {
         const allFieldsFilled = stepFields.every((field) => {
           const value = formData[field];
-          // For age, check it's a valid positive number
           if (field === "customerAge") {
             return (
               value !== undefined &&
@@ -521,24 +654,28 @@ const ServiceBookingForm = ({
               Number(value) > 0
             );
           }
-          // For other fields, check not empty
           return (
             value !== undefined && value !== null && String(value).trim() !== ""
           );
         });
-
-        return allFieldsFilled;
+        // Also check if there are no errors for these fields
+        const hasNoErrors = stepFields.every((field) => !errors[field]);
+        return allFieldsFilled && hasNoErrors;
       }
     }
 
-    // Additional validation for step 2
-    if (stepNumber === 2) {
+    if (stepNumber === 3) {
       return selectedDate && selectedTime;
     }
 
-    // Additional validation for step 4 (insurance verification)
     if (stepNumber === 4) {
-      if (service?.insuranceAvailable && formData.useInsurance) {
+      const formData = watch();
+      // Check if payment method is selected
+      if (!formData.paymentMethod) {
+        return false;
+      }
+      // If insurance is required, check if it's verified
+      if (useInsurance) {
         return insuranceVerified;
       }
       return true;
@@ -547,46 +684,8 @@ const ServiceBookingForm = ({
     return true;
   };
 
-  // Check if service is a health service with insurance
-  const isHealthServiceWithInsurance = service?.insuranceAvailable === true;
+  const isHealthServiceWithInsurance = exactService?.quote === "Yes";
 
-  // Calculate subtotal
-  const calculateSubtotal = () => {
-    const basePrice = service?.basePrice || 0;
-    // In future, can add taxes, fees, etc.
-    return basePrice;
-  };
-
-  // Get step validation status
-  const getStepStatus = (stepNumber) => {
-    if (stepNumber < step) {
-      return isStepValid(stepNumber) ? "completed" : "error";
-    } else if (stepNumber === step) {
-      return "current";
-    } else {
-      return "pending";
-    }
-  };
-
-  const prevStep = () => {
-    setStep(step - 1);
-  };
-
-  // Early return if service is not provided
-  if (!service) {
-    return (
-      <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg">
-        <div className="p-6 text-center">
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            No Service Selected
-          </h2>
-          <p className="text-gray-600">Please select a service to book.</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Insurance toggle handler
   const handleInsuranceToggle = (e) => {
     setUseInsurance(e.target.checked);
     setInsuranceVerified(false);
@@ -601,7 +700,6 @@ const ServiceBookingForm = ({
     }
   };
 
-  // Insurance verification handler
   const handleVerifyInsurance = async () => {
     setInsuranceVerified(false);
     showSuccess("Verifying insurance details...");
@@ -611,7 +709,19 @@ const ServiceBookingForm = ({
     setValue("useInsurance", true);
   };
 
-  // Handle cancel/back
+  // Handle slot blocking/unblocking
+  const handleSlotBlock = (time) => {
+    if (!blockedSlots.includes(time)) {
+      setBlockedSlots([...blockedSlots, time]);
+      showSuccess(`Time slot ${time} has been blocked`);
+    }
+  };
+
+  const handleSlotUnblock = (time) => {
+    setBlockedSlots(blockedSlots.filter((slot) => slot !== time));
+    showSuccess(`Time slot ${time} has been unblocked`);
+  };
+
   const handleBack = () => {
     if (onCancel) {
       onCancel();
@@ -622,20 +732,71 @@ const ServiceBookingForm = ({
 
   const TOTAL_STEPS = 4;
   const paymentMethod = watch("paymentMethod");
+  const calculateSubtotal = () => {
+    // First check calculatedPrice state
+    if (calculatedPrice !== null && calculatedPrice !== undefined) {
+      return calculatedPrice;
+    }
+    // Fallback to exactService price
+    if (exactService?.price !== null && exactService?.price !== undefined) {
+      return exactService.price;
+    }
+    return null;
+  };
 
   return (
     <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg">
-      <BookingFormHeader service={service} onCancel={handleBack} />
+      <BookingFormHeader
+        service={exactService || service}
+        onCancel={handleBack}
+      />
 
       <form onSubmit={handleSubmit(handleFormSubmit)}>
         <div className="p-4">
+          {/* Step 1: Service Selection */}
           {step === 1 && (
-            <div>
+            <ServiceSelectionStep
+              register={register}
+              errors={errors}
+              service={service}
+              setValue={setValue}
+              watch={watch}
+              selectedServices={selectedServices}
+              onServicesChange={setSelectedServices}
+            />
+          )}
+
+          {/* Step 2: Customer Information (Address) */}
+          {step === 2 && (
+            <div
+              className="swipe-container"
+              onTouchStart={(e) => {
+                const touch = e.touches[0];
+                e.currentTarget.dataset.touchStartX = touch.clientX.toString();
+              }}
+              onTouchEnd={(e) => {
+                const touchStartX = parseFloat(
+                  e.currentTarget.dataset.touchStartX || "0"
+                );
+                const touchEndX = e.changedTouches[0].clientX;
+                const diff = touchStartX - touchEndX;
+
+                // Swipe left (next step) - threshold 50px
+                if (diff > 50 && step < 4) {
+                  nextStep();
+                }
+                // Swipe right (previous step) - threshold 50px
+                else if (diff < -50 && step > 1) {
+                  setStep(step - 1);
+                }
+              }}
+            >
               <SavedAddressSelector
                 savedAddresses={savedAddresses}
                 onSelectAddress={handleAddressSelect}
                 selectedAddressId={selectedAddressId}
                 onAddNew={handleAddNewAddress}
+                onDeleteAddress={handleDeleteAddress}
                 isLoading={isLoadingPreviousData}
               />
               <CustomerInformationStep
@@ -647,35 +808,105 @@ const ServiceBookingForm = ({
                 isGettingLocation={isGettingLocation}
                 locationError={locationError}
                 gpsLocation={gpsLocation}
-                setValue={setValue}
+                setValue={(field, value, options) => {
+                  setValue(field, value, {
+                    shouldValidate: true,
+                    shouldDirty: true,
+                    ...options,
+                  });
+                  // Trigger validation for step 2 fields when any field changes
+                  if (step === 2) {
+                    setTimeout(async () => {
+                      const step2Fields = getStepFields(2);
+                      await trigger(step2Fields);
+                    }, 100);
+                  }
+                }}
+              />
+              <div className="mt-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Service Requirements <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  {...register("serviceRequirements")}
+                  rows={4}
+                  className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                    (touchedFields.serviceRequirements || isSubmitted) &&
+                    errors.serviceRequirements
+                      ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                      : "border-gray-300"
+                  }`}
+                  placeholder="Describe the service requirements or details needed"
+                />
+                {(touchedFields.serviceRequirements || isSubmitted) &&
+                  errors.serviceRequirements && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.serviceRequirements.message}
+                    </p>
+                  )}
+              </div>
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Additional Notes (Optional)
+                </label>
+                <textarea
+                  {...register("notes")}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Any additional information or special instructions"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Schedule (Date/Time) */}
+          {step === 3 && (
+            <div
+              className="swipe-container"
+              onTouchStart={(e) => {
+                const touch = e.touches[0];
+                e.currentTarget.dataset.touchStartX = touch.clientX.toString();
+              }}
+              onTouchEnd={(e) => {
+                const touchStartX = parseFloat(
+                  e.currentTarget.dataset.touchStartX || "0"
+                );
+                const touchEndX = e.changedTouches[0].clientX;
+                const diff = touchStartX - touchEndX;
+
+                // Swipe left (next step) - threshold 50px
+                if (diff > 50 && step < 4) {
+                  nextStep();
+                }
+                // Swipe right (previous step) - threshold 50px
+                else if (diff < -50 && step > 1) {
+                  setStep(step - 1);
+                }
+              }}
+            >
+              <ScheduleStep
+                selectedDate={selectedDate}
+                onDateChange={setSelectedDate}
+                selectedTime={selectedTime}
+                onTimeChange={setSelectedTime}
+                serviceId={watch("selectedServiceId")}
+                availableSlots={[]}
+                estimatedPrice={calculatedPrice}
+                isCalculatingPrice={isCalculatingPrice}
+                exactService={exactService}
+                state={watch("state")}
+                blockedSlots={blockedSlots}
+                onSlotBlock={handleSlotBlock}
+                onSlotUnblock={handleSlotUnblock}
+                onCalculatePricing={calculatePricing}
               />
             </div>
           )}
 
-          {step === 2 && (
-            <ScheduleStep
-              selectedDate={selectedDate}
-              onDateChange={setSelectedDate}
-              selectedTime={selectedTime}
-              onTimeChange={setSelectedTime}
-              serviceId={service?.id}
-              availableSlots={availableSlots}
-            />
-          )}
-
-          {step === 3 && (
-            <AdditionalInfoStep
-              register={register}
-              errors={errors}
-              service={service}
-              setValue={setValue}
-              watch={watch}
-            />
-          )}
-
+          {/* Step 4: Payment */}
           {step === 4 && (
             <PaymentStep
-              service={service}
+              service={exactService || service}
               selectedDate={selectedDate}
               selectedTime={selectedTime}
               subtotal={calculateSubtotal()}
@@ -684,13 +915,21 @@ const ServiceBookingForm = ({
               onInsuranceToggle={handleInsuranceToggle}
               register={register}
               errors={errors}
+              touchedFields={touchedFields}
+              isSubmitted={isSubmitted}
               insuranceVerified={insuranceVerified}
               onVerifyInsurance={handleVerifyInsurance}
               setValue={setValue}
               paymentMethod={paymentMethod}
               onPaymentMethodSelect={(value) =>
-                setValue("paymentMethod", value)
+                setValue("paymentMethod", value, {
+                  shouldValidate: false, // Don't validate immediately
+                  shouldDirty: true,
+                })
               }
+              isCalculatingPrice={isCalculatingPrice}
+              state={watch("state")}
+              exactService={exactService}
             />
           )}
         </div>
@@ -698,13 +937,21 @@ const ServiceBookingForm = ({
         <StepIndicator
           currentStep={step}
           totalSteps={TOTAL_STEPS}
-          getStepStatus={getStepStatus}
+          getStepStatus={(stepNum) => {
+            if (stepNum < step) {
+              return isStepValid(stepNum) ? "completed" : "error";
+            } else if (stepNum === step) {
+              return "current";
+            } else {
+              return "pending";
+            }
+          }}
         />
 
         <BookingFormFooter
           step={step}
           totalSteps={TOTAL_STEPS}
-          onPrevStep={prevStep}
+          onPrevStep={() => setStep(step - 1)}
           onNextStep={nextStep}
           isLoading={isLoading}
           isStepValid={isStepValid(step)}

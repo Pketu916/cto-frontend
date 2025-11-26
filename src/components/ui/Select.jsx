@@ -15,6 +15,9 @@ const Select = forwardRef(
     },
     ref
   ) => {
+    // Ensure options is an array
+    const validOptions = Array.isArray(options) ? options : [];
+
     return (
       <div className={`w-full ${className}`}>
         {label && (
@@ -41,16 +44,27 @@ const Select = forwardRef(
           <option value="" disabled>
             {placeholder}
           </option>
-          {options.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
+          {validOptions.length > 0 ? (
+            validOptions.map((option) => (
+              <option
+                key={option.value || option}
+                value={option.value || option}
+              >
+                {option.label || option}
+              </option>
+            ))
+          ) : (
+            <option value="" disabled>
+              No options available
             </option>
-          ))}
+          )}
         </select>
         {error && <p className="mt-0.5 text-xs text-red-600">{error}</p>}
       </div>
     );
   }
 );
+
+Select.displayName = "Select";
 
 export default Select;

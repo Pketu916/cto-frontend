@@ -1,11 +1,20 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
-const HeroMarqueeCard = ({ service, className = "" }) => {
+const HeroMarqueeCard = ({ service, className = "", onBookService }) => {
   const navigate = useNavigate();
 
   const handleClick = () => {
-    navigate(`/services/${service.slug}`);
+    // Navigate to booking page directly
+    if (onBookService) {
+      onBookService(service);
+    } else {
+      navigate("/booking", {
+        state: {
+          service: service,
+        },
+      });
+    }
   };
 
   return (

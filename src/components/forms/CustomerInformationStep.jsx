@@ -1,12 +1,14 @@
 import React from "react";
 import { User, MapPin } from "lucide-react";
 import Input from "../ui/Input";
-import { INDIAN_STATES } from "./bookingFormConstants";
+import { AUSTRALIAN_STATES } from "../../utils/pricingUtils";
 import LocationMethodSelector from "./LocationMethodSelector";
 
 const CustomerInformationStep = ({
   register,
   errors,
+  touchedFields = {},
+  isSubmitted = false,
   locationMethod,
   onLocationMethodChange,
   onGetLocation,
@@ -15,6 +17,10 @@ const CustomerInformationStep = ({
   gpsLocation,
   setValue,
 }) => {
+  // Helper to check if error should be shown
+  const shouldShowError = (fieldName) => {
+    return (touchedFields[fieldName] || isSubmitted) && errors[fieldName];
+  };
   return (
     <div className="space-y-4">
       <h3 className="text-base font-semibold text-gray-900 flex items-center">
@@ -27,7 +33,11 @@ const CustomerInformationStep = ({
           label="Customer Name"
           name="customerName"
           placeholder="Enter customer's full name"
-          error={errors.customerName?.message}
+          error={
+            shouldShowError("customerName")
+              ? errors.customerName?.message
+              : undefined
+          }
           required
           {...register("customerName")}
         />
@@ -37,7 +47,11 @@ const CustomerInformationStep = ({
           name="customerAge"
           type="number"
           placeholder="Enter customer's age"
-          error={errors.customerAge?.message}
+          error={
+            shouldShowError("customerAge")
+              ? errors.customerAge?.message
+              : undefined
+          }
           required
           {...register("customerAge", {
             valueAsNumber: true, // Ensure it's treated as number
@@ -48,7 +62,11 @@ const CustomerInformationStep = ({
           label="Customer Phone"
           name="customerPhone"
           placeholder="Enter customer's phone number"
-          error={errors.customerPhone?.message}
+          error={
+            shouldShowError("customerPhone")
+              ? errors.customerPhone?.message
+              : undefined
+          }
           required
           {...register("customerPhone")}
         />
@@ -57,7 +75,11 @@ const CustomerInformationStep = ({
           label="Emergency Contact"
           name="emergencyContact"
           placeholder="Enter emergency contact number"
-          error={errors.emergencyContact?.message}
+          error={
+            shouldShowError("emergencyContact")
+              ? errors.emergencyContact?.message
+              : undefined
+          }
           required
           {...register("emergencyContact")}
         />
@@ -82,7 +104,11 @@ const CustomerInformationStep = ({
           label="House/Flat Number and Name"
           name="houseDetails"
           placeholder="e.g., Flat 201, ABC Society or House No. 123, XYZ Building"
-          error={errors.houseDetails?.message}
+          error={
+            shouldShowError("houseDetails")
+              ? errors.houseDetails?.message
+              : undefined
+          }
           required
           {...register("houseDetails")}
         />
@@ -91,7 +117,9 @@ const CustomerInformationStep = ({
           label="Address"
           name="address"
           placeholder="Enter complete address (society, building name, street, area, etc.)"
-          error={errors.address?.message}
+          error={
+            shouldShowError("address") ? errors.address?.message : undefined
+          }
           required
           {...register("address")}
         />
@@ -101,29 +129,29 @@ const CustomerInformationStep = ({
             label="City"
             name="city"
             placeholder="Enter city"
-            error={errors.city?.message}
+            error={shouldShowError("city") ? errors.city?.message : undefined}
             required
             {...register("city")}
           />
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              State <span className="text-red-500">*</span>
+              Australian State <span className="text-red-500">*</span>
             </label>
             <select
               {...register("state")}
               className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.state ? "border-red-500" : "border-gray-300"
+                shouldShowError("state") ? "border-red-500" : "border-gray-300"
               }`}
             >
-              <option value="">Select State</option>
-              {INDIAN_STATES.map((state) => (
-                <option key={state} value={state}>
-                  {state}
+              <option value="">Select Australian State</option>
+              {AUSTRALIAN_STATES.map((state) => (
+                <option key={state.value} value={state.value}>
+                  {state.label}
                 </option>
               ))}
             </select>
-            {errors.state && (
+            {shouldShowError("state") && (
               <p className="text-red-500 text-sm mt-1">
                 {errors.state.message}
               </p>
@@ -134,7 +162,9 @@ const CustomerInformationStep = ({
             label="Pincode"
             name="pincode"
             placeholder="Enter pincode"
-            error={errors.pincode?.message}
+            error={
+              shouldShowError("pincode") ? errors.pincode?.message : undefined
+            }
             required
             {...register("pincode")}
           />

@@ -8,10 +8,16 @@ const InsuranceSection = ({
   onInsuranceToggle,
   register,
   errors,
+  touchedFields = {},
+  isSubmitted = false,
   insuranceVerified,
   onVerifyInsurance,
   setValue,
 }) => {
+  // Helper to check if error should be shown
+  const shouldShowError = (fieldName) => {
+    return (touchedFields[fieldName] || isSubmitted) && errors[fieldName];
+  };
   return (
     <div className="bg-blue-50 rounded-lg p-6 mb-6">
       <div className="flex items-center mb-4">
@@ -42,7 +48,11 @@ const InsuranceSection = ({
             label="Insurance Provider"
             name="insuranceProvider"
             placeholder="Enter insurance company name"
-            error={errors.insuranceProvider?.message}
+            error={
+              shouldShowError("insuranceProvider")
+                ? errors.insuranceProvider?.message
+                : undefined
+            }
             required
             {...register("insuranceProvider")}
           />
@@ -52,7 +62,11 @@ const InsuranceSection = ({
               label="Policy Number"
               name="insurancePolicyNumber"
               placeholder="Enter policy number"
-              error={errors.insurancePolicyNumber?.message}
+              error={
+                shouldShowError("insurancePolicyNumber")
+                  ? errors.insurancePolicyNumber?.message
+                  : undefined
+              }
               required
               {...register("insurancePolicyNumber")}
             />
@@ -61,7 +75,11 @@ const InsuranceSection = ({
               label="Member ID"
               name="insuranceMemberId"
               placeholder="Enter member ID"
-              error={errors.insuranceMemberId?.message}
+              error={
+                shouldShowError("insuranceMemberId")
+                  ? errors.insuranceMemberId?.message
+                  : undefined
+              }
               required
               {...register("insuranceMemberId")}
             />
@@ -71,7 +89,11 @@ const InsuranceSection = ({
             label="Group Number (Optional)"
             name="insuranceGroupNumber"
             placeholder="Enter group number if applicable"
-            error={errors.insuranceGroupNumber?.message}
+            error={
+              shouldShowError("insuranceGroupNumber")
+                ? errors.insuranceGroupNumber?.message
+                : undefined
+            }
             {...register("insuranceGroupNumber")}
           />
 

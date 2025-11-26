@@ -24,12 +24,16 @@ const ServiceCard = ({
   }
 
   const handleServiceClick = () => {
-    // Check if service has a slug, otherwise navigate to services page
-    if (service.slug) {
-      navigate(`/services/${service.slug}`);
+    // Directly navigate to booking page when card is clicked
+    if (onBookService) {
+      onBookService(service);
     } else {
-      // Fallback to services page if no slug
-      navigate("/services");
+      // Default behavior: navigate to booking page
+      navigate("/booking", {
+        state: {
+          service: service,
+        },
+      });
     }
   };
 
@@ -37,6 +41,13 @@ const ServiceCard = ({
     e.stopPropagation();
     if (onBookService) {
       onBookService(service);
+    } else {
+      // Default behavior: navigate to booking page
+      navigate("/booking", {
+        state: {
+          service: service,
+        },
+      });
     }
   };
 

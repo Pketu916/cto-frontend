@@ -135,8 +135,70 @@ export const authAPI = {
   },
 };
 
-// Services API - REMOVED
-// All services routes have been deleted from backend
+// Services API
+export const servicesAPI = {
+  // Get lightweight services list (only essential fields)
+  getServicesList: async () => {
+    const response = await api.get("/services");
+    return response.data;
+  },
+
+  // Get all services (alias for getServicesList)
+  getAllServices: async () => {
+    return servicesAPI.getServicesList();
+  },
+
+  // Get full service details by name
+  getServiceDetails: async (serviceName) => {
+    const response = await api.get(
+      `/services/details/${encodeURIComponent(serviceName)}`
+    );
+    return response.data;
+  },
+
+  // Get service by name (lightweight by default, full if needed)
+  getServiceByName: async (serviceName, full = false) => {
+    const url = full
+      ? `/services/details/${encodeURIComponent(serviceName)}`
+      : `/services/${encodeURIComponent(serviceName)}?full=true`;
+    const response = await api.get(url);
+    return response.data;
+  },
+
+  // Get all categories
+  getCategories: async () => {
+    const response = await api.get("/services/categories/list");
+    return response.data;
+  },
+
+  // Calculate price for a service
+  calculatePrice: async (serviceName, state, date, time) => {
+    const response = await api.post("/services/calculate-price", {
+      serviceName,
+      state,
+      date,
+      time,
+    });
+    return response.data;
+  },
+
+  // Get unique Service IDs
+  getUniqueServiceIds: async () => {
+    const response = await api.get("/services/unique-ids");
+    return response.data;
+  },
+
+  // Find exact service by Service ID, date, time, and state
+  findServiceById: async (serviceId, date, time, state) => {
+    const response = await api.post("/services/find-by-id", {
+      serviceId,
+      date,
+      time,
+      state,
+    });
+    return response.data;
+  },
+};
 
 // Bookings API
 export const bookingsAPI = {
@@ -320,6 +382,57 @@ export const adminAPI = {
   // Get Booking Details
   getBookingDetails: async (bookingId) => {
     const response = await api.get(`/admin/bookings/${bookingId}`);
+    return response.data;
+  },
+
+  // Get All Quotations
+  getQuotations: async (params = {}) => {
+    const response = await api.get("/admin/quotations", { params });
+    return response.data;
+  },
+
+  // Get Quotation Details
+  getQuotationDetails: async (quotationId) => {
+    const response = await api.get(`/admin/quotations/${quotationId}`);
+    return response.data;
+  },
+
+  // Quote Quotation (Add Pricing)
+  quoteQuotation: async (quotationId, quotedPrice, priceType, adminNotes) => {
+    const response = await api.put(`/admin/quotations/${quotationId}/quote`, {
+      quotedPrice,
+      priceType,
+      adminNotes,
+    });
+    return response.data;
+  },
+
+  // Approve Quotation
+  approveQuotation: async (quotationId) => {
+    const response = await api.put(`/admin/quotations/${quotationId}/approve`);
+    return response.data;
+  },
+
+  // Reject Quotation
+  rejectQuotation: async (quotationId, reason) => {
+    const response = await api.put(`/admin/quotations/${quotationId}/reject`, {
+      reason,
+    });
+    return response.data;
+  },
+};
+
+// Quotations API
+export const quotationsAPI = {
+  // Get User Quotations
+  getUserQuotations: async () => {
+    const response = await api.get("/quotations/user");
+    return response.data;
+  },
+
+  // Get Quotation Details
+  getQuotationDetails: async (quotationId) => {
+    const response = await api.get(`/quotations/${quotationId}`);
     return response.data;
   },
 };

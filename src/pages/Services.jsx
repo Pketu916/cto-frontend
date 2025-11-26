@@ -2,17 +2,59 @@ import React, { useState, useEffect } from "react";
 import { HeroSection, PageContainer, CTASection } from "../components/layout";
 import { ServicesSection } from "../components/sections";
 import { Footer } from "../components/ui";
-import { servicesData } from "../data/servicesData";
+import { servicesAPI } from "../services/api";
+import { useToast } from "../contexts/ToastContext";
 
 const Services = () => {
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { showError } = useToast();
 
-  // Use shared services data
+  // Fetch unique service IDs from backend
   useEffect(() => {
-    setServices(servicesData);
-    setLoading(false);
-  }, []);
+    const loadServices = async () => {
+      try {
+        setLoading(true);
+        const response = await servicesAPI.getUniqueServiceIds();
+
+        if (
+          response.success &&
+          response.services &&
+          Array.isArray(response.services)
+        ) {
+          // Convert backend service format to frontend card format
+          const formattedServices = response.services.map((service) => ({
+            id: service.serviceId,
+            title: service.name,
+            name: service.name,
+            category: service.category,
+            description: `${service.name} - ${service.category || "Service"}`,
+            shortDescription: service.name,
+            image:
+              "https://images.unsplash.com/photo-1551434678-e076c223a692?w=600&h=400&fit=crop",
+            estimatedPriceRange: "Price varies by condition",
+            serviceId: service.serviceId,
+            unit: service.unit,
+            quote: service.quote,
+            type: service.type,
+          }));
+
+          setServices(formattedServices);
+        } else {
+          showError("Failed to load services");
+          setServices([]);
+        }
+      } catch (error) {
+        console.error("Error loading services:", error);
+        showError("Failed to load services. Please check your connection.");
+        setServices([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadServices();
+  }, [showError]);
 
   const handleGetStarted = () => {
     console.log("Get Started clicked");
@@ -53,7 +95,7 @@ const Services = () => {
           services={services}
           loading={loading}
           showBookButton={true}
-          showBookingForm={true}
+          showBookingForm={false}
         />
       </PageContainer>
 

@@ -1,90 +1,141 @@
-import React, { useEffect, useMemo } from "react";
-import { FileText, Filter } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { FileText, Filter, Loader2 } from "lucide-react";
 import Input from "../ui/Input";
 import Select from "../ui/Select";
-import { servicesData } from "../../data/servicesData";
+import { servicesAPI } from "../../services/api";
+import { formatAUD, formatPriceRange } from "../../utils/pricingUtils";
+import { useToast } from "../../contexts/ToastContext";
 
 const AdditionalInfoStep = ({ register, errors, service, setValue, watch }) => {
+  const { showError } = useToast();
+  const [servicesList, setServicesList] = useState([]);
+  const [uniqueServiceIds, setUniqueServiceIds] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedServiceDetails, setSelectedServiceDetails] = useState(null);
+  const [loadingServiceDetails, setLoadingServiceDetails] = useState(false);
+
   // Get the selected category and service from the form
   const selectedCategory = watch("selectedCategory");
-  const selectedServiceFromDropdown = watch("selectedServiceFromDropdown");
+  const selectedServiceId = watch("selectedServiceId");
 
-  // Get all unique categories from services (including services without categories)
+  // Load unique Service IDs on component mount
+  useEffect(() => {
+    const loadUniqueServiceIds = async () => {
+      try {
+        setLoading(true);
+        const response = await servicesAPI.getUniqueServiceIds();
+        if (response.success) {
+          setUniqueServiceIds(response.services || []);
+        } else {
+          showError("Failed to load services. Please try again.");
+        }
+      } catch (error) {
+        console.error("Error loading unique service IDs:", error);
+        showError("Failed to load services. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUniqueServiceIds();
+  }, [showError]);
+
+  // Get all unique categories for dropdown
   const allCategories = useMemo(() => {
-    const categories = new Set();
-    servicesData.forEach((s) => {
+    const categorySet = new Set();
+    uniqueServiceIds.forEach((s) => {
       if (s.category) {
-        categories.add(s.category);
+        categorySet.add(s.category);
       }
     });
     return [
       { value: "all", label: "All Categories" },
-      ...Array.from(categories)
-        .sort()
-        .map((cat) => ({ value: cat, label: cat })),
+      ...Array.from(categorySet).map((cat) => ({ value: cat, label: cat })),
     ];
-  }, []);
+  }, [uniqueServiceIds]);
 
-  // Filter services by selected category
-  const filteredServiceOptions = useMemo(() => {
-    let filtered = servicesData;
+  // Filter unique Service IDs by selected category
+  const filteredServiceIdOptions = useMemo(() => {
+    let filtered = uniqueServiceIds;
     if (selectedCategory && selectedCategory !== "all") {
-      filtered = servicesData.filter((s) => s.category === selectedCategory);
+      filtered = uniqueServiceIds.filter(
+        (s) => s.category === selectedCategory
+      );
     }
     return filtered.map((service) => ({
-      value: service.id,
-      label: service.title,
+      value: service.serviceId,
+      label: `${service.serviceId} - ${service.name}`,
+      category: service.category,
+      service: service,
     }));
-  }, [selectedCategory]);
+  }, [selectedCategory, uniqueServiceIds]);
 
-  // Get all service options for the dropdown (always available)
-  const allServiceOptions = useMemo(() => {
-    return servicesData.map((service) => ({
-      value: service.id,
-      label: service.title,
+  // Get all Service ID options for the dropdown (always available)
+  const allServiceIdOptions = useMemo(() => {
+    return uniqueServiceIds.map((service) => ({
+      value: service.serviceId,
+      label: `${service.serviceId} - ${service.name}`,
+      category: service.category,
+      service: service,
     }));
-  }, []);
+  }, [uniqueServiceIds]);
 
   // Reset service selection when category changes
   useEffect(() => {
     if (selectedCategory && setValue) {
-      setValue("selectedServiceFromDropdown", "");
+      setValue("selectedServiceId", "");
+      setSelectedServiceDetails(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCategory]);
 
-  // Auto-fill service requirements when a service is selected
+  // When Service ID is selected, show basic info
   useEffect(() => {
-    if (selectedServiceFromDropdown && setValue) {
-      const selectedService = servicesData.find(
-        (s) => s.id === selectedServiceFromDropdown
+    if (selectedServiceId && uniqueServiceIds.length > 0) {
+      const selectedService = uniqueServiceIds.find(
+        (s) => s.serviceId === selectedServiceId
       );
       if (selectedService) {
-        // Auto-fill service requirements with a helpful description
+        setSelectedServiceDetails({
+          serviceId: selectedService.serviceId,
+          name: selectedService.name,
+          category: selectedService.category,
+          unit: selectedService.unit,
+          quote: selectedService.quote,
+          type: selectedService.type,
+        });
+
+        // Auto-fill service requirements
         setValue(
           "serviceRequirements",
-          `Requesting ${selectedService.title}: ${selectedService.shortDescription}`,
+          `Requesting ${selectedService.name}${
+            selectedService.category ? ` (${selectedService.category})` : ""
+          }`,
           { shouldValidate: true }
         );
       }
+    } else {
+      setSelectedServiceDetails(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedServiceFromDropdown]);
+  }, [selectedServiceId, uniqueServiceIds]);
 
   // If a service is pre-selected, initialize the category and service dropdown
   useEffect(() => {
     if (
       service &&
-      service.id &&
+      service.serviceId &&
       service.category &&
       setValue &&
-      !selectedCategory
+      !selectedCategory &&
+      uniqueServiceIds.length > 0
     ) {
       setValue("selectedCategory", service.category);
-      setValue("selectedServiceFromDropdown", service.id);
+      setValue("selectedServiceId", service.serviceId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [service]);
+  }, [service, uniqueServiceIds]);
 
   return (
     <div className="space-y-4">
@@ -93,166 +144,142 @@ const AdditionalInfoStep = ({ register, errors, service, setValue, watch }) => {
         Service Selection & Additional Information
       </h3>
 
-      {/* Service Selection Section - Always visible so users can select or change service */}
+      {/* Service Selection Section */}
       <div className="space-y-3 p-3 bg-gray-50 rounded-lg border border-gray-300">
-        {/* <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-2 mb-2">
           <Filter className="w-5 h-5 text-blue-600" />
           <h4 className="text-md font-semibold text-gray-900">
             Select Service Category & Service
           </h4>
-        </div> */}
+        </div>
 
-        {/* Show pre-selected service info if exists */}
-        {/* {service && service.id && service.id !== "general-booking" && (
-          <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-            <p className="text-sm text-blue-700 mb-1">
-              <span className="font-semibold">Pre-selected Service:</span>{" "}
-              {service.title}
-            </p>
-            <p className="text-xs text-blue-600">
-              You can change this selection using the dropdowns below
-            </p>
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+            <span className="ml-2 text-gray-600">Loading services...</span>
           </div>
-        )} */}
+        ) : (
+          <>
+            {/* Category Selection */}
+            <div className="mb-3">
+              <Select
+                label="Select Service Category"
+                name="selectedCategory"
+                options={allCategories}
+                placeholder="Select 'All Categories' or choose a specific category"
+                error={errors.selectedCategory?.message}
+                {...register("selectedCategory")}
+              />
+              {categories.length > 0 && (
+                <p className="text-xs text-gray-500 mt-1">
+                  {categories.length} categories available
+                </p>
+              )}
+            </div>
 
-        {/* Category Selection */}
-        <div className="mb-3">
-          <Select
-            label="Select Service Category (Optional)"
-            name="selectedCategory"
-            options={allCategories}
-            placeholder="Select 'All Categories' or choose a specific category"
-            error={errors.selectedCategory?.message}
-            {...register("selectedCategory")}
-          />
-        </div>
+            {/* Service ID Selection */}
+            <div className="mb-3">
+              <Select
+                label="Select Service ID"
+                name="selectedServiceId"
+                required
+                options={
+                  selectedCategory && selectedCategory !== "all"
+                    ? filteredServiceIdOptions
+                    : allServiceIdOptions
+                }
+                placeholder={
+                  selectedCategory && selectedCategory !== "all"
+                    ? filteredServiceIdOptions.length === 0
+                      ? "No services available in this category"
+                      : `Choose a Service ID from ${selectedCategory} (${filteredServiceIdOptions.length} available)`
+                    : `Choose a Service ID (${allServiceIdOptions.length} services available)`
+                }
+                error={errors.selectedServiceId?.message}
+                disabled={
+                  loading ||
+                  (selectedCategory &&
+                    selectedCategory !== "all" &&
+                    filteredServiceIdOptions.length === 0)
+                }
+                {...register("selectedServiceId", {
+                  required: "Please select a Service ID",
+                })}
+              />
+              {selectedCategory && selectedCategory !== "all" && (
+                <p className="text-xs text-gray-500 mt-1">
+                  {filteredServiceIdOptions.length} service(s) in this category
+                </p>
+              )}
+              <p className="text-xs text-gray-500 mt-1">
+                Note: After selecting Service ID, please proceed to select date
+                and time to see exact price and Support Item Number.
+              </p>
+            </div>
 
-        {/* Service Selection - Always visible with all services by default */}
-        <div className="mb-3">
-          <Select
-            label="Select Service"
-            name="selectedServiceFromDropdown"
-            required
-            options={
-              selectedCategory && selectedCategory !== "all"
-                ? filteredServiceOptions
-                : allServiceOptions
-            }
-            placeholder={
-              selectedCategory && selectedCategory !== "all"
-                ? filteredServiceOptions.length === 0
-                  ? "No services available in this category"
-                  : `Choose a service from ${selectedCategory}`
-                : `Choose a service (${allServiceOptions.length} services available including all myCRT services)`
-            }
-            error={errors.selectedServiceFromDropdown?.message}
-            disabled={
-              selectedCategory &&
+            {selectedCategory &&
               selectedCategory !== "all" &&
-              filteredServiceOptions.length === 0
-            }
-            {...register("selectedServiceFromDropdown", {
-              required: "Please select a service",
-            })}
-          />
-          {/* Debug info - remove in production */}
-          {process.env.NODE_ENV === "development" && (
-            <p className="text-xs text-gray-500 mt-1">
-              Services loaded: {allServiceOptions.length} | Filtered:{" "}
-              {selectedCategory && selectedCategory !== "all"
-                ? filteredServiceOptions.length
-                : allServiceOptions.length}
-            </p>
-          )}
-        </div>
-
-        {selectedCategory &&
-          selectedCategory !== "all" &&
-          filteredServiceOptions.length === 0 && (
-            <p className="text-sm text-gray-500 italic">
-              No services available in this category. Please select "All
-              Categories" or choose a different category.
-            </p>
-          )}
+              filteredServiceIdOptions.length === 0 && (
+                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm text-yellow-800">
+                    No services available in this category. Please select "All
+                    Categories" or choose a different category.
+                  </p>
+                </div>
+              )}
+          </>
+        )}
       </div>
 
-      {/* Show selected service details if service is selected */}
-      {selectedServiceFromDropdown && (
-        <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-          {(() => {
-            const selectedService = servicesData.find(
-              (s) => s.id === selectedServiceFromDropdown
-            );
-            return selectedService ? (
-              <div className="space-y-2">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-blue-900 text-base mb-1">
-                      {selectedService.title}
-                    </h4>
-                    <p className="text-xs text-blue-700 mb-2">
-                      {selectedService.shortDescription}
-                    </p>
-                  </div>
-                </div>
+      {/* Show selected Service ID details */}
+      {selectedServiceId && selectedServiceDetails && (
+        <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <div className="space-y-3">
+            <div>
+              <h4 className="font-semibold text-blue-900 text-base mb-1">
+                Service ID: {selectedServiceDetails.serviceId}
+              </h4>
+              <p className="text-sm text-blue-700 font-medium">
+                {selectedServiceDetails.name}
+              </p>
+              {selectedServiceDetails.category && (
+                <p className="text-sm text-blue-700">
+                  Category: {selectedServiceDetails.category}
+                </p>
+              )}
+            </div>
 
-                <div className="flex flex-wrap items-center gap-3">
-                  {selectedService.category && (
-                    <span className="bg-white px-3 py-1 rounded-full text-xs font-medium text-blue-800 border border-blue-200">
-                      📁 {selectedService.category}
-                    </span>
-                  )}
-                  {(selectedService.basePrice ||
-                    selectedService.estimatedPriceRange) && (
-                    <span className="bg-white px-3 py-1 rounded-full text-xs font-semibold text-green-700 border border-green-200">
-                      💰{" "}
-                      {selectedService.estimatedPriceRange ||
-                        (selectedService.basePrice
-                          ? `₹${selectedService.basePrice.toLocaleString(
-                              "en-IN"
-                            )}${
-                              selectedService.priceUnit
-                                ? ` ${selectedService.priceUnit}`
-                                : ""
-                            }`
-                          : "Contact for pricing")}
-                    </span>
-                  )}
-                  {selectedService.insuranceAvailable && (
-                    <span className="bg-white px-3 py-1 rounded-full text-xs font-medium text-purple-700 border border-purple-200">
-                      🛡️ Insurance Available
-                    </span>
-                  )}
-                </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {selectedServiceDetails.category && (
+                <span className="bg-white px-3 py-1 rounded-full text-xs font-medium text-blue-800 border border-blue-200">
+                  📁 {selectedServiceDetails.category}
+                </span>
+              )}
+              {selectedServiceDetails.unit && (
+                <span className="bg-white px-3 py-1 rounded-full text-xs font-medium text-gray-700 border border-gray-200">
+                  Unit: {selectedServiceDetails.unit}
+                </span>
+              )}
+              {selectedServiceDetails.quote && (
+                <span className="bg-white px-3 py-1 rounded-full text-xs font-medium text-orange-700 border border-orange-200">
+                  Quote: {selectedServiceDetails.quote}
+                </span>
+              )}
+              {selectedServiceDetails.type && (
+                <span className="bg-white px-3 py-1 rounded-full text-xs font-medium text-purple-700 border border-purple-200">
+                  Type: {selectedServiceDetails.type}
+                </span>
+              )}
+            </div>
 
-                {selectedService.features &&
-                  selectedService.features.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-blue-200">
-                      <p className="text-xs font-semibold text-blue-800 mb-2">
-                        Key Features:
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedService.features
-                          .slice(0, 4)
-                          .map((feature, idx) => (
-                            <span
-                              key={idx}
-                              className="bg-white px-2 py-1 rounded text-xs text-blue-700 border border-blue-200"
-                            >
-                              ✓ {feature}
-                            </span>
-                          ))}
-                        {selectedService.features.length > 4 && (
-                          <span className="bg-white px-2 py-1 rounded text-xs text-blue-600 border border-blue-200">
-                            +{selectedService.features.length - 4} more
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  )}
-              </div>
-            ) : null;
-          })()}
+            <div className="mt-3 pt-3 border-t border-blue-200">
+              <p className="text-xs text-blue-700">
+                <strong>Note:</strong> Please proceed to select date and time in
+                the next step to see the exact price and Support Item Number for
+                this service.
+              </p>
+            </div>
+          </div>
         </div>
       )}
 

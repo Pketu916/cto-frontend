@@ -17,11 +17,17 @@ export const bookingFormSchema = yup.object({
     .required("Please enter house/flat number and name"),
   address: yup.string().required("Please enter the complete address"),
   city: yup.string().required("Please enter the city name"),
-  state: yup.string().required("Please select the state"),
+  state: yup
+    .string()
+    .oneOf(
+      ["ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"],
+      "Please select a valid Australian state"
+    )
+    .required("Please select the Australian state"),
   pincode: yup.string().required("Please enter the pincode"),
   // Service selection fields (optional if service is pre-selected)
   selectedCategory: yup.string(),
-  selectedServiceFromDropdown: yup.string(),
+  selectedServiceId: yup.string().required("Please select a Service ID"),
   serviceRequirements: yup
     .string()
     .required("Please describe the service requirements or details"),

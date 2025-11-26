@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   homeHero as HomeHero,
@@ -9,10 +9,60 @@ import {
 import { Footer } from "../components/navigation";
 import { CTASection } from "../components/layout";
 import { Button } from "../components/ui";
-import { servicesData } from "../data/servicesData";
+import { servicesAPI } from "../services/api";
+import { useToast } from "../contexts/ToastContext";
 
 const Home = () => {
   const navigate = useNavigate();
+  const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const { showError } = useToast();
+
+  // Fetch unique service IDs from backend
+  useEffect(() => {
+    const loadServices = async () => {
+      try {
+        setLoading(true);
+        const response = await servicesAPI.getUniqueServiceIds();
+
+        if (
+          response.success &&
+          response.services &&
+          Array.isArray(response.services)
+        ) {
+          // Convert backend service format to frontend card format
+          const formattedServices = response.services
+            .slice(0, 6)
+            .map((service) => ({
+              id: service.serviceId,
+              title: service.name,
+              name: service.name,
+              category: service.category,
+              description: `${service.name} - ${service.category || "Service"}`,
+              shortDescription: service.name,
+              image:
+                "https://images.unsplash.com/photo-1551434678-e076c223a692?w=600&h=400&fit=crop",
+              estimatedPriceRange: "Price varies by condition",
+              serviceId: service.serviceId,
+              unit: service.unit,
+              quote: service.quote,
+              type: service.type,
+            }));
+
+          setServices(formattedServices);
+        } else {
+          setServices([]);
+        }
+      } catch (error) {
+        console.error("Error loading services:", error);
+        setServices([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadServices();
+  }, [showError]);
 
   return (
     <>
@@ -22,10 +72,10 @@ const Home = () => {
         <section className="bg-gray-50 px-4 py-16">
           <div className="max-w-7xl mx-auto">
             <ServicesSection
-              services={servicesData.slice(0, 6)}
-              loading={false}
+              services={services}
+              loading={loading}
               showBookButton={true}
-              showBookingForm={true}
+              showBookingForm={false}
             />
             {/* Explore All Services Button */}
             <div className="text-center mt-8 flex justify-center">

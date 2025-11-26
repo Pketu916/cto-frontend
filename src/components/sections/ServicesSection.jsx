@@ -95,16 +95,31 @@ const ServicesSection = ({
   const handleBookService = (service) => {
     if (!isAuthenticated) {
       showError("Please login to book a service");
-      navigate("/login");
+      navigate("/login", {
+        state: {
+          from: "/booking",
+        },
+      });
       return;
     }
 
-    setSelectedService(service);
+    // If external handler is provided, use it
+    if (onBookService) {
+      onBookService(service);
+      return;
+    }
+
+    // If showBookingForm is true, show form in section (legacy behavior)
     if (showBookingForm) {
+      setSelectedService(service);
       setShowForm(true);
     } else {
-      // Use external handler if provided
-      onBookService?.(service);
+      // Default: navigate to booking page
+      navigate("/booking", {
+        state: {
+          service: service,
+        },
+      });
     }
   };
 

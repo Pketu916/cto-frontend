@@ -6,7 +6,6 @@ import { SocketProvider } from "./contexts/SocketContext";
 import Header from "./components/navigation/Header";
 import Home from "./pages/Home";
 import Services from "./pages/Services";
-import ServiceDetails from "./pages/ServiceDetails";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Blog from "./pages/Blog";
@@ -25,6 +24,7 @@ import ProviderDashboard from "./pages/dashboard/ProviderDashboard";
 import ProviderBookingDetails from "./pages/dashboard/ProviderBookingDetails";
 import AdminDashboard from "./pages/dashboard/AdminDashboard";
 import BookingConfirmation from "./pages/BookingConfirmation";
+import Booking from "./pages/Booking";
 import Tracking from "./pages/Tracking";
 import { ProtectedRoute } from "./components/auth";
 import "./App.css";
@@ -41,7 +41,6 @@ function App() {
                 {/* Public Routes */}
                 <Route path="/" element={<Home />} />
                 <Route path="/services" element={<Services />} />
-                <Route path="/services/:slug" element={<ServiceDetails />} />
                 <Route path="/about" element={<About />} />
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/blog" element={<Blog />} />
@@ -56,6 +55,14 @@ function App() {
                 <Route path="/tracking/:bookingId" element={<Tracking />} />
 
                 {/* Protected Routes */}
+                <Route
+                  path="/booking"
+                  element={
+                    <ProtectedRoute>
+                      <Booking />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route
                   path="/booking/confirmation"
                   element={

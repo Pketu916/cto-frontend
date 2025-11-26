@@ -8,6 +8,7 @@ import {
   TrendingUp,
   RefreshCw,
   AlertCircle,
+  FileText,
 } from "lucide-react";
 import Button from "../../components/ui/Button";
 import Card from "../../components/ui/Card";
@@ -15,6 +16,7 @@ import LoadingSpinner from "../../components/ui/LoadingSpinner";
 import ProviderManagementTab from "../../components/dashboard/ProviderManagementTab";
 import UserManagementTab from "../../components/dashboard/UserManagementTab";
 import BookingManagementTab from "../../components/dashboard/BookingManagementTab";
+import QuotationManagementTab from "../../components/dashboard/QuotationManagementTab";
 import ErrorBoundary from "../../components/ErrorBoundary";
 import api from "../../services/api";
 
@@ -60,6 +62,7 @@ const AdminDashboard = () => {
     { id: "users", label: "Users", icon: Users },
     { id: "providers", label: "Providers", icon: Shield },
     { id: "bookings", label: "Bookings", icon: Calendar },
+    { id: "quotations", label: "Quotations", icon: FileText },
   ];
 
   if (loading && stats.totalUsers === 0) {
@@ -253,6 +256,13 @@ const AdminDashboard = () => {
         {selectedTab === "bookings" && (
           <ErrorBoundary>
             <BookingManagementTab stats={stats} />
+          </ErrorBoundary>
+        )}
+
+        {/* Quotations Management Tab */}
+        {selectedTab === "quotations" && (
+          <ErrorBoundary>
+            <QuotationManagementTab stats={stats} />
           </ErrorBoundary>
         )}
       </div>
