@@ -18,11 +18,39 @@ const ScheduleStep = ({
   onSlotUnblock,
   state = null,
   onCalculatePricing,
+  // New props for booking type
+  bookingType = "oneTime",
+  onBookingTypeChange,
+  serviceHours = null,
+  onServiceHoursChange,
+  // Date range props
+  startDate = null,
+  onStartDateChange,
+  endDate = null,
+  onEndDateChange,
+  selectedDays = [],
+  onSelectedDaysChange,
+  // Calculated price for date range
+  calculatedRangePrice = null,
 }) => {
   const [hour, setHour] = useState("");
   const [minute, setMinute] = useState("");
+  const [localServiceHours, setLocalServiceHours] = useState(
+    serviceHours || ""
+  );
   const prevSelectedTimeRef = useRef(selectedTime);
   const isInternalUpdateRef = useRef(false);
+
+  // Days of week options
+  const daysOfWeek = [
+    { value: 0, label: "Sunday", short: "Sun" },
+    { value: 1, label: "Monday", short: "Mon" },
+    { value: 2, label: "Tuesday", short: "Tue" },
+    { value: 3, label: "Wednesday", short: "Wed" },
+    { value: 4, label: "Thursday", short: "Thu" },
+    { value: 5, label: "Friday", short: "Fri" },
+    { value: 6, label: "Saturday", short: "Sat" },
+  ];
 
   // Initialize hour and minute from selectedTime (only when selectedTime changes externally)
   useEffect(() => {
@@ -68,6 +96,36 @@ const ScheduleStep = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hour, minute]);
 
+  // Update service hours when local state changes
+  useEffect(() => {
+    if (onServiceHoursChange && localServiceHours !== serviceHours) {
+      onServiceHoursChange(localServiceHours);
+    }
+  }, [localServiceHours, serviceHours, onServiceHoursChange]);
+
+  // Calculate total days in date range that match selected days
+  const calculateTotalSelectedDays = () => {
+    if (!startDate || !endDate || selectedDays.length === 0) {
+      return 0;
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    let count = 0;
+
+    // Iterate through each day in the range
+    const currentDate = new Date(start);
+    while (currentDate <= end) {
+      const dayOfWeek = currentDate.getDay();
+      if (selectedDays.includes(dayOfWeek)) {
+        count++;
+      }
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    return count;
+  };
+
   const handleHourChange = (e) => {
     const value = e.target.value;
     // Allow empty or valid hour (1-24)
@@ -94,6 +152,26 @@ const ScheduleStep = ({
     }
   };
 
+  const handleServiceHoursChange = (e) => {
+    const value = e.target.value;
+    if (value === "") {
+      setLocalServiceHours("");
+      return;
+    }
+    const numValue = parseFloat(value);
+    if (!isNaN(numValue) && numValue > 0) {
+      setLocalServiceHours(value);
+    }
+  };
+
+  const handleDayToggle = (dayValue) => {
+    if (!onSelectedDaysChange) return;
+    const newSelectedDays = selectedDays.includes(dayValue)
+      ? selectedDays.filter((d) => d !== dayValue)
+      : [...selectedDays, dayValue];
+    onSelectedDaysChange(newSelectedDays);
+  };
+
   const formatTimeDisplay = (h, m) => {
     if (!h || !m) return "";
     const hourNum = parseInt(h);
@@ -113,86 +191,347 @@ const ScheduleStep = ({
         Schedule Your Service
       </h3>
 
-      <div className="space-y-4">
-        {/* Date Selection */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Select Date <span className="text-red-500">*</span>
-          </label>
-          <CalendarPicker
-            selectedDate={selectedDate}
-            onDateChange={onDateChange}
-            minDate={new Date()}
-          />
+      {/* Booking Type Switch */}
+      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+        <label className="block text-sm font-medium text-gray-700 mb-3">
+          Booking Type <span className="text-red-500">*</span>
+        </label>
+        <div className="flex gap-4">
+          <button
+            type="button"
+            onClick={() =>
+              onBookingTypeChange && onBookingTypeChange("oneTime")
+            }
+            className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all ${
+              bookingType === "oneTime"
+                ? "bg-blue-600 text-white shadow-md"
+                : "bg-white text-gray-700 border-2 border-gray-300 hover:border-blue-400"
+            }`}
+          >
+            One-Time Booking
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              onBookingTypeChange && onBookingTypeChange("dateRange")
+            }
+            className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all ${
+              bookingType === "dateRange"
+                ? "bg-blue-600 text-white shadow-md"
+                : "bg-white text-gray-700 border-2 border-gray-300 hover:border-blue-400"
+            }`}
+          >
+            Date Range Booking
+          </button>
         </div>
+      </div>
 
-        {/* Time Selection - Direct Input */}
-        {selectedDate && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select Time <span className="text-red-500">*</span>
-            </label>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs text-gray-600 mb-1">
-                  Hour (1-24)
-                </label>
-                <div className="relative">
-                  <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input
-                    type="number"
-                    value={hour}
-                    onChange={handleHourChange}
-                    onBlur={(e) => {
-                      const val = e.target.value;
-                      if (val && (parseInt(val) < 1 || parseInt(val) > 24)) {
-                        setHour("");
-                      }
-                    }}
-                    placeholder="09"
-                    min="1"
-                    max="24"
-                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs text-gray-600 mb-1">
-                  Minute (0-59)
-                </label>
-                <div className="relative">
-                  <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input
-                    type="number"
-                    value={minute}
-                    onChange={handleMinuteChange}
-                    onBlur={(e) => {
-                      const val = e.target.value;
-                      if (val && (parseInt(val) < 0 || parseInt(val) > 59)) {
-                        setMinute("");
-                      }
-                    }}
-                    placeholder="00"
-                    min="0"
-                    max="59"
-                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  />
-                </div>
-              </div>
+      <div className="space-y-4">
+        {/* One-Time Booking Form */}
+        {bookingType === "oneTime" && (
+          <>
+            {/* Date Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Select Date <span className="text-red-500">*</span>
+              </label>
+              <CalendarPicker
+                selectedDate={selectedDate}
+                onDateChange={onDateChange}
+                minDate={new Date()}
+              />
             </div>
-            {hour && minute && (
-              <p className="mt-2 text-sm text-gray-600">
-                Selected Time:{" "}
-                <span className="font-medium">
-                  {formatTimeDisplay(hour, minute)}
-                </span>
-              </p>
+
+            {/* Time Selection - Direct Input */}
+            {selectedDate && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Time <span className="text-red-500">*</span>
+                </label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">
+                      Hour (1-24)
+                    </label>
+                    <div className="relative">
+                      <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        type="number"
+                        value={hour}
+                        onChange={handleHourChange}
+                        onBlur={(e) => {
+                          const val = e.target.value;
+                          if (
+                            val &&
+                            (parseInt(val) < 1 || parseInt(val) > 24)
+                          ) {
+                            setHour("");
+                          }
+                        }}
+                        placeholder="09"
+                        min="1"
+                        max="24"
+                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">
+                      Minute (0-59)
+                    </label>
+                    <div className="relative">
+                      <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        type="number"
+                        value={minute}
+                        onChange={handleMinuteChange}
+                        onBlur={(e) => {
+                          const val = e.target.value;
+                          if (
+                            val &&
+                            (parseInt(val) < 0 || parseInt(val) > 59)
+                          ) {
+                            setMinute("");
+                          }
+                        }}
+                        placeholder="00"
+                        min="0"
+                        max="59"
+                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+                {hour && minute && (
+                  <p className="mt-2 text-sm text-gray-600">
+                    Selected Time:{" "}
+                    <span className="font-medium">
+                      {formatTimeDisplay(hour, minute)}
+                    </span>
+                  </p>
+                )}
+              </div>
             )}
-          </div>
+
+            {/* Service Hours Input for One-Time Booking */}
+            {selectedDate && selectedTime && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Service Hours <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={localServiceHours}
+                    onChange={handleServiceHoursChange}
+                    placeholder="Enter service hours (e.g., 2.5)"
+                    min="0.5"
+                    step="0.5"
+                    className="w-full pl-3 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  Enter the number of hours required for this service
+                </p>
+              </div>
+            )}
+          </>
         )}
 
-        {/* Show Total Price Below Date/Time Selection */}
-        {selectedDate && (
+        {/* Date Range Booking Form */}
+        {bookingType === "dateRange" && (
+          <>
+            {/* Start Date Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Start Date <span className="text-red-500">*</span>
+              </label>
+              <CalendarPicker
+                selectedDate={startDate}
+                onDateChange={onStartDateChange}
+                minDate={new Date()}
+              />
+            </div>
+
+            {/* End Date Selection */}
+            {startDate && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  End Date <span className="text-red-500">*</span>
+                </label>
+                <CalendarPicker
+                  selectedDate={endDate}
+                  onDateChange={onEndDateChange}
+                  minDate={startDate}
+                />
+              </div>
+            )}
+
+            {/* Service Days Selection */}
+            {startDate && endDate && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Service Days <span className="text-red-500">*</span>
+                </label>
+                <div className="grid grid-cols-7 gap-2">
+                  {daysOfWeek.map((day) => (
+                    <button
+                      key={day.value}
+                      type="button"
+                      onClick={() => handleDayToggle(day.value)}
+                      className={`py-2 px-2 rounded-lg font-medium text-sm transition-all ${
+                        selectedDays.includes(day.value)
+                          ? "bg-blue-600 text-white shadow-md"
+                          : "bg-white text-gray-700 border-2 border-gray-300 hover:border-blue-400"
+                      }`}
+                    >
+                      {day.short}
+                    </button>
+                  ))}
+                </div>
+                {selectedDays.length > 0 && (
+                  <p className="mt-2 text-sm text-gray-600">
+                    Selected:{" "}
+                    <span className="font-medium">
+                      {selectedDays
+                        .sort()
+                        .map(
+                          (d) =>
+                            daysOfWeek.find((day) => day.value === d)?.label
+                        )
+                        .join(", ")}
+                    </span>
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Time Selection for Date Range */}
+            {startDate && endDate && selectedDays.length > 0 && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Time <span className="text-red-500">*</span>
+                </label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">
+                      Hour (1-24)
+                    </label>
+                    <div className="relative">
+                      <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        type="number"
+                        value={hour}
+                        onChange={handleHourChange}
+                        onBlur={(e) => {
+                          const val = e.target.value;
+                          if (
+                            val &&
+                            (parseInt(val) < 1 || parseInt(val) > 24)
+                          ) {
+                            setHour("");
+                          }
+                        }}
+                        placeholder="09"
+                        min="1"
+                        max="24"
+                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">
+                      Minute (0-59)
+                    </label>
+                    <div className="relative">
+                      <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        type="number"
+                        value={minute}
+                        onChange={handleMinuteChange}
+                        onBlur={(e) => {
+                          const val = e.target.value;
+                          if (
+                            val &&
+                            (parseInt(val) < 0 || parseInt(val) > 59)
+                          ) {
+                            setMinute("");
+                          }
+                        }}
+                        placeholder="00"
+                        min="0"
+                        max="59"
+                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+                {hour && minute && (
+                  <p className="mt-2 text-sm text-gray-600">
+                    Selected Time:{" "}
+                    <span className="font-medium">
+                      {formatTimeDisplay(hour, minute)}
+                    </span>
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Service Hours Input for Date Range */}
+            {startDate &&
+              endDate &&
+              selectedDays.length > 0 &&
+              selectedTime && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Service Hours per Day{" "}
+                    <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      value={localServiceHours}
+                      onChange={handleServiceHoursChange}
+                      placeholder="Enter service hours per day (e.g., 2.5)"
+                      min="0.5"
+                      step="0.5"
+                      className="w-full pl-3 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Enter the number of hours required per service day
+                  </p>
+                  {localServiceHours &&
+                    startDate &&
+                    endDate &&
+                    selectedDays.length > 0 && (
+                      <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                        <p className="text-sm text-gray-700">
+                          <strong>Total Service Days:</strong>{" "}
+                          {calculateTotalSelectedDays()} days
+                        </p>
+                        <p className="text-sm text-gray-700 mt-1">
+                          <strong>Hours per Day:</strong> {localServiceHours}{" "}
+                          hours
+                        </p>
+                      </div>
+                    )}
+                </div>
+              )}
+          </>
+        )}
+
+        {/* Show Total Price */}
+        {((bookingType === "oneTime" &&
+          selectedDate &&
+          selectedTime &&
+          localServiceHours) ||
+          (bookingType === "dateRange" &&
+            startDate &&
+            endDate &&
+            selectedDays.length > 0 &&
+            selectedTime &&
+            localServiceHours)) && (
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-lg p-5 shadow-sm">
             <div className="flex justify-between items-center mb-3">
               <span className="text-base font-semibold text-gray-800">
@@ -202,22 +541,40 @@ const ScheduleStep = ({
                 <span className="text-sm text-blue-600 font-medium">
                   Calculating...
                 </span>
-              ) : estimatedPrice !== null &&
+              ) : bookingType === "oneTime" &&
+                estimatedPrice !== null &&
                 estimatedPrice !== undefined &&
-                !isNaN(estimatedPrice) ? (
+                !isNaN(estimatedPrice) &&
+                localServiceHours ? (
                 <span className="text-2xl font-bold text-blue-700">
-                  {formatAUD(estimatedPrice)}
+                  {formatAUD(estimatedPrice * parseFloat(localServiceHours))}
                   {exactService?.priceType && (
                     <span className="text-xs text-blue-500 ml-2 font-normal">
                       ({exactService.priceType})
                     </span>
                   )}
                 </span>
-              ) : exactService?.price !== null &&
+              ) : bookingType === "oneTime" &&
+                exactService?.price !== null &&
                 exactService?.price !== undefined &&
-                !isNaN(exactService.price) ? (
+                !isNaN(exactService.price) &&
+                localServiceHours ? (
                 <span className="text-2xl font-bold text-blue-700">
-                  {formatAUD(exactService.price)}
+                  {formatAUD(
+                    exactService.price * parseFloat(localServiceHours)
+                  )}
+                  {exactService?.priceType && (
+                    <span className="text-xs text-blue-500 ml-2 font-normal">
+                      ({exactService.priceType})
+                    </span>
+                  )}
+                </span>
+              ) : bookingType === "dateRange" &&
+                calculatedRangePrice !== null &&
+                calculatedRangePrice !== undefined &&
+                !isNaN(calculatedRangePrice) ? (
+                <span className="text-2xl font-bold text-blue-700">
+                  {formatAUD(calculatedRangePrice)}
                   {exactService?.priceType && (
                     <span className="text-xs text-blue-500 ml-2 font-normal">
                       ({exactService.priceType})
@@ -231,8 +588,67 @@ const ScheduleStep = ({
               )}
             </div>
 
+            {/* Price Breakdown */}
+            {bookingType === "oneTime" &&
+              exactService?.price &&
+              localServiceHours && (
+                <div className="mb-3 p-3 bg-white rounded-lg border border-blue-200">
+                  <p className="text-sm text-gray-700">
+                    <strong>Hourly Rate:</strong>{" "}
+                    {formatAUD(exactService.price)}
+                  </p>
+                  <p className="text-sm text-gray-700 mt-1">
+                    <strong>Service Hours:</strong> {localServiceHours} hours
+                  </p>
+                  <p className="text-sm text-gray-700 mt-1">
+                    <strong>Total:</strong>{" "}
+                    {formatAUD(
+                      exactService.price * parseFloat(localServiceHours)
+                    )}
+                  </p>
+                </div>
+              )}
+
+            {bookingType === "dateRange" &&
+              exactService?.price &&
+              localServiceHours &&
+              startDate &&
+              endDate &&
+              selectedDays.length > 0 && (
+                <div className="mb-3 p-3 bg-white rounded-lg border border-blue-200">
+                  <p className="text-sm text-gray-700">
+                    <strong>Hourly Rate:</strong>{" "}
+                    {formatAUD(exactService.price)}
+                  </p>
+                  <p className="text-sm text-gray-700 mt-1">
+                    <strong>Total Service Days:</strong>{" "}
+                    {calculateTotalSelectedDays()} days
+                  </p>
+                  <p className="text-sm text-gray-700 mt-1">
+                    <strong>Hours per Day:</strong> {localServiceHours} hours
+                  </p>
+                  <p className="text-sm text-gray-700 mt-1">
+                    <strong>Total:</strong>{" "}
+                    {formatAUD(
+                      exactService.price *
+                        calculateTotalSelectedDays() *
+                        parseFloat(localServiceHours)
+                    )}
+                  </p>
+                </div>
+              )}
+
             {/* Calculate Pricing Button */}
-            {selectedDate && selectedTime && (
+            {((bookingType === "oneTime" &&
+              selectedDate &&
+              selectedTime &&
+              localServiceHours) ||
+              (bookingType === "dateRange" &&
+                startDate &&
+                endDate &&
+                selectedDays.length > 0 &&
+                selectedTime &&
+                localServiceHours)) && (
               <div className="mb-3">
                 <button
                   type="button"
@@ -269,7 +685,7 @@ const ScheduleStep = ({
                       Calculating Pricing...
                     </span>
                   ) : !state ? (
-                    "Please Select State in Step 3 First"
+                    "Please Select State in Step 2 First"
                   ) : (
                     "Calculate Your Pricing"
                   )}

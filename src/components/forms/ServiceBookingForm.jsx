@@ -41,6 +41,13 @@ const ServiceBookingForm = ({
   const [exactService, setExactService] = useState(null);
   const [blockedSlots, setBlockedSlots] = useState([]);
   const [selectedServices, setSelectedServices] = useState([]); // Multiple services
+  // New state for booking type and date range
+  const [bookingType, setBookingType] = useState("oneTime"); // "oneTime" or "dateRange"
+  const [serviceHours, setServiceHours] = useState(null);
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
+  const [selectedDays, setSelectedDays] = useState([]);
+  const [calculatedRangePrice, setCalculatedRangePrice] = useState(null);
   const { showSuccess, showError } = useToast();
   const { emitBookingCreated } = useSocket();
   const { user, userType } = useAuth();
@@ -265,6 +272,28 @@ const ServiceBookingForm = ({
     showSuccess("Address deleted successfully!");
   };
 
+  // Calculate total selected days in date range
+  const calculateTotalSelectedDays = () => {
+    if (!startDate || !endDate || selectedDays.length === 0) {
+      return 0;
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    let count = 0;
+
+    const currentDate = new Date(start);
+    while (currentDate <= end) {
+      const dayOfWeek = currentDate.getDay();
+      if (selectedDays.includes(dayOfWeek)) {
+        count++;
+      }
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    return count;
+  };
+
   // Manual function to calculate pricing when user clicks button
   const calculatePricing = async () => {
     const formState = watch();
@@ -277,16 +306,6 @@ const ServiceBookingForm = ({
       return;
     }
 
-    if (!selectedDate) {
-      showError("Please select a date first");
-      return;
-    }
-
-    if (!selectedTime) {
-      showError("Please select a time first");
-      return;
-    }
-
     if (!state) {
       showError(
         "Please select state in Step 2 (Customer Information) to calculate pricing."
@@ -294,29 +313,91 @@ const ServiceBookingForm = ({
       return;
     }
 
+    // Validate based on booking type
+    if (bookingType === "oneTime") {
+      if (!selectedDate) {
+        showError("Please select a date first");
+        return;
+      }
+
+      if (!selectedTime) {
+        showError("Please select a time first");
+        return;
+      }
+
+      if (!serviceHours || parseFloat(serviceHours) <= 0) {
+        showError("Please enter service hours");
+        return;
+      }
+    } else if (bookingType === "dateRange") {
+      if (!startDate) {
+        showError("Please select start date first");
+        return;
+      }
+
+      if (!endDate) {
+        showError("Please select end date first");
+        return;
+      }
+
+      if (selectedDays.length === 0) {
+        showError("Please select at least one service day");
+        return;
+      }
+
+      if (!selectedTime) {
+        showError("Please select a time first");
+        return;
+      }
+
+      if (!serviceHours || parseFloat(serviceHours) <= 0) {
+        showError("Please enter service hours per day");
+        return;
+      }
+    }
+
     setIsCalculatingPrice(true);
     try {
+      // For one-time booking, use selectedDate; for date range, use startDate
+      const dateToUse = bookingType === "oneTime" ? selectedDate : startDate;
+
       const response = await servicesAPI.findServiceById(
         selectedServiceId,
-        format(selectedDate, "yyyy-MM-dd"),
+        format(dateToUse, "yyyy-MM-dd"),
         selectedTime,
         state
       );
 
       if (response.success && response.service) {
         setExactService(response.service);
-        // Set price - handle null, undefined, and empty string cases
         const price = response.service.price;
+
         if (
           price !== null &&
           price !== undefined &&
           price !== "" &&
           !isNaN(parseFloat(price))
         ) {
-          setCalculatedPrice(parseFloat(price));
-          showSuccess("Pricing calculated successfully!");
+          const hourlyPrice = parseFloat(price);
+
+          if (bookingType === "oneTime") {
+            // One-time: hourly price × service hours
+            const totalPrice = hourlyPrice * parseFloat(serviceHours);
+            setCalculatedPrice(totalPrice);
+            setCalculatedRangePrice(null);
+            showSuccess("Pricing calculated successfully!");
+          } else {
+            // Date range: total days × hourly price × service hours per day
+            const totalDays = calculateTotalSelectedDays();
+            const totalPrice =
+              totalDays * hourlyPrice * parseFloat(serviceHours);
+            setCalculatedRangePrice(totalPrice);
+            setCalculatedPrice(null);
+            showSuccess(`Pricing calculated for ${totalDays} service days!`);
+          }
         } else {
           setCalculatedPrice(null);
+          setCalculatedRangePrice(null);
           showError(
             "Price not available for this service. Quotation required."
           );
@@ -324,12 +405,14 @@ const ServiceBookingForm = ({
       } else {
         setExactService(null);
         setCalculatedPrice(null);
+        setCalculatedRangePrice(null);
         showError("Service not found. Please check your selections.");
       }
     } catch (error) {
       console.error("Error finding exact service:", error);
       setExactService(null);
       setCalculatedPrice(null);
+      setCalculatedRangePrice(null);
 
       if (error.response?.status === 429) {
         showError("Too many requests. Please wait a moment and try again.");
@@ -399,10 +482,27 @@ const ServiceBookingForm = ({
       }
     }
 
-    if (!selectedDate || !selectedTime) {
-      setStep(2);
-      showError("Please select date and time");
-      return;
+    // Validate step 3 based on booking type
+    if (bookingType === "oneTime") {
+      if (!selectedDate || !selectedTime || !serviceHours) {
+        setStep(3);
+        showError("Please complete date, time, and service hours");
+        return;
+      }
+    } else if (bookingType === "dateRange") {
+      if (
+        !startDate ||
+        !endDate ||
+        selectedDays.length === 0 ||
+        !selectedTime ||
+        !serviceHours
+      ) {
+        setStep(3);
+        showError(
+          "Please complete date range, service days, time, and service hours"
+        );
+        return;
+      }
     }
 
     const finalServiceId = data.selectedServiceId;
@@ -415,12 +515,34 @@ const ServiceBookingForm = ({
     setIsSubmitting(true);
 
     try {
+      // Calculate final price based on booking type
+      let finalPrice = null;
+      if (bookingType === "oneTime") {
+        finalPrice =
+          calculatedPrice ??
+          (exactService?.price
+            ? exactService.price * parseFloat(serviceHours)
+            : null);
+      } else if (bookingType === "dateRange") {
+        finalPrice = calculatedRangePrice;
+      }
+
       const bookingData = {
         serviceId: finalServiceId,
         supportItemNumber: exactService?.supportItemNumber || null,
         selectedCategory: data.selectedCategory || null,
-        selectedDate: format(selectedDate, "yyyy-MM-dd"),
+        bookingType: bookingType,
+        // One-time booking fields
+        selectedDate:
+          bookingType === "oneTime" ? format(selectedDate, "yyyy-MM-dd") : null,
         selectedTimeSlot: selectedTime,
+        serviceHours: serviceHours ? parseFloat(serviceHours) : null,
+        // Date range booking fields
+        startDate:
+          bookingType === "dateRange" ? format(startDate, "yyyy-MM-dd") : null,
+        endDate:
+          bookingType === "dateRange" ? format(endDate, "yyyy-MM-dd") : null,
+        selectedDays: bookingType === "dateRange" ? selectedDays : [],
         customerName: data.customerName,
         customerAge: data.customerAge,
         customerPhone: data.customerPhone,
@@ -452,11 +574,7 @@ const ServiceBookingForm = ({
                 service?.title ||
                 null,
               supportItemNumber: exactService.supportItemNumber || null,
-              price:
-                exactService.price ??
-                calculatedPrice ??
-                exactService.estimatedPrice ??
-                null,
+              price: finalPrice,
               priceType: exactService.priceType || null,
               condition:
                 exactService.determinedCondition ||
@@ -586,13 +704,40 @@ const ServiceBookingForm = ({
 
     // Additional validation for step 3 (date/time selection)
     if (step === 3) {
-      if (!selectedDate) {
-        showError("Please select a date for your appointment.");
-        return;
-      }
-      if (!selectedTime) {
-        showError("Please enter hour and minute for your appointment time.");
-        return;
+      if (bookingType === "oneTime") {
+        if (!selectedDate) {
+          showError("Please select a date for your appointment.");
+          return;
+        }
+        if (!selectedTime) {
+          showError("Please enter hour and minute for your appointment time.");
+          return;
+        }
+        if (!serviceHours || parseFloat(serviceHours) <= 0) {
+          showError("Please enter service hours.");
+          return;
+        }
+      } else if (bookingType === "dateRange") {
+        if (!startDate) {
+          showError("Please select start date.");
+          return;
+        }
+        if (!endDate) {
+          showError("Please select end date.");
+          return;
+        }
+        if (selectedDays.length === 0) {
+          showError("Please select at least one service day.");
+          return;
+        }
+        if (!selectedTime) {
+          showError("Please enter hour and minute for your appointment time.");
+          return;
+        }
+        if (!serviceHours || parseFloat(serviceHours) <= 0) {
+          showError("Please enter service hours per day.");
+          return;
+        }
       }
       // Check if state is selected (needed for exact service finding)
       const state = watch("state");
@@ -665,7 +810,24 @@ const ServiceBookingForm = ({
     }
 
     if (stepNumber === 3) {
-      return selectedDate && selectedTime;
+      if (bookingType === "oneTime") {
+        return (
+          selectedDate &&
+          selectedTime &&
+          serviceHours &&
+          parseFloat(serviceHours) > 0
+        );
+      } else if (bookingType === "dateRange") {
+        return (
+          startDate &&
+          endDate &&
+          selectedDays.length > 0 &&
+          selectedTime &&
+          serviceHours &&
+          parseFloat(serviceHours) > 0
+        );
+      }
+      return false;
     }
 
     if (stepNumber === 4) {
@@ -733,13 +895,35 @@ const ServiceBookingForm = ({
   const TOTAL_STEPS = 4;
   const paymentMethod = watch("paymentMethod");
   const calculateSubtotal = () => {
-    // First check calculatedPrice state
-    if (calculatedPrice !== null && calculatedPrice !== undefined) {
-      return calculatedPrice;
-    }
-    // Fallback to exactService price
-    if (exactService?.price !== null && exactService?.price !== undefined) {
-      return exactService.price;
+    if (bookingType === "oneTime") {
+      // One-time: use calculatedPrice or calculate from hourly price × service hours
+      if (calculatedPrice !== null && calculatedPrice !== undefined) {
+        return calculatedPrice;
+      }
+      if (
+        exactService?.price !== null &&
+        exactService?.price !== undefined &&
+        serviceHours
+      ) {
+        return exactService.price * parseFloat(serviceHours);
+      }
+    } else if (bookingType === "dateRange") {
+      // Date range: use calculatedRangePrice
+      if (calculatedRangePrice !== null && calculatedRangePrice !== undefined) {
+        return calculatedRangePrice;
+      }
+      // Fallback calculation
+      if (
+        exactService?.price !== null &&
+        exactService?.price !== undefined &&
+        serviceHours &&
+        startDate &&
+        endDate &&
+        selectedDays.length > 0
+      ) {
+        const totalDays = calculateTotalSelectedDays();
+        return exactService.price * totalDays * parseFloat(serviceHours);
+      }
     }
     return null;
   };
@@ -899,6 +1083,17 @@ const ServiceBookingForm = ({
                 onSlotBlock={handleSlotBlock}
                 onSlotUnblock={handleSlotUnblock}
                 onCalculatePricing={calculatePricing}
+                bookingType={bookingType}
+                onBookingTypeChange={setBookingType}
+                serviceHours={serviceHours}
+                onServiceHoursChange={setServiceHours}
+                startDate={startDate}
+                onStartDateChange={setStartDate}
+                endDate={endDate}
+                onEndDateChange={setEndDate}
+                selectedDays={selectedDays}
+                onSelectedDaysChange={setSelectedDays}
+                calculatedRangePrice={calculatedRangePrice}
               />
             </div>
           )}
@@ -907,7 +1102,9 @@ const ServiceBookingForm = ({
           {step === 4 && (
             <PaymentStep
               service={exactService || service}
-              selectedDate={selectedDate}
+              selectedDate={
+                bookingType === "oneTime" ? selectedDate : startDate
+              }
               selectedTime={selectedTime}
               subtotal={calculateSubtotal()}
               isHealthServiceWithInsurance={isHealthServiceWithInsurance}
@@ -930,6 +1127,11 @@ const ServiceBookingForm = ({
               isCalculatingPrice={isCalculatingPrice}
               state={watch("state")}
               exactService={exactService}
+              bookingType={bookingType}
+              startDate={startDate}
+              endDate={endDate}
+              selectedDays={selectedDays}
+              serviceHours={serviceHours}
             />
           )}
         </div>
@@ -958,8 +1160,16 @@ const ServiceBookingForm = ({
           isSubmitting={isSubmitting}
           canSubmit={
             !isSubmitting &&
-            selectedDate &&
-            selectedTime &&
+            ((bookingType === "oneTime" &&
+              selectedDate &&
+              selectedTime &&
+              serviceHours) ||
+              (bookingType === "dateRange" &&
+                startDate &&
+                endDate &&
+                selectedDays.length > 0 &&
+                selectedTime &&
+                serviceHours)) &&
             (!isHealthServiceWithInsurance ||
               !useInsurance ||
               insuranceVerified)

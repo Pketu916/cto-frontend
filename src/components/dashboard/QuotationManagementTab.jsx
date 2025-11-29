@@ -276,113 +276,143 @@ const QuotationManagementTab = ({ stats = {} }) => {
           </div>
         ) : (
           <>
-            <div className="space-y-4">
-              {quotations.map((quotation) => {
-                const StatusIcon = getStatusIcon(quotation.status);
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse border border-gray-300 bg-white">
+                <thead>
+                  <tr className="bg-blue-600 text-white">
+                    <th className="border border-gray-300 px-4 py-3 text-left text-xs font-semibold">
+                      Quotation #
+                    </th>
+                    <th className="border border-gray-300 px-4 py-3 text-left text-xs font-semibold">
+                      Support Item #
+                    </th>
+                    <th className="border border-gray-300 px-4 py-3 text-left text-xs font-semibold">
+                      Support Item Name
+                    </th>
+                    <th className="border border-gray-300 px-4 py-3 text-left text-xs font-semibold">
+                      Reg. Group
+                    </th>
+                    <th className="border border-gray-300 px-4 py-3 text-left text-xs font-semibold">
+                      Day & Time
+                    </th>
+                    <th className="border border-gray-300 px-4 py-3 text-center text-xs font-semibold">
+                      Hours
+                    </th>
+                    <th className="border border-gray-300 px-4 py-3 text-right text-xs font-semibold">
+                      Quoted Price
+                    </th>
+                    <th className="border border-gray-300 px-4 py-3 text-left text-xs font-semibold">
+                      Customer
+                    </th>
+                    <th className="border border-gray-300 px-4 py-3 text-center text-xs font-semibold">
+                      Status
+                    </th>
+                    <th className="border border-gray-300 px-4 py-3 text-center text-xs font-semibold">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {quotations.map((quotation) => {
+                    const StatusIcon = getStatusIcon(quotation.status);
+                    const serviceDay = quotation.scheduledDate
+                      ? new Date(quotation.scheduledDate).toLocaleDateString(
+                          "en-AU",
+                          {
+                            weekday: "long",
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          }
+                        )
+                      : "Not scheduled";
 
-                return (
-                  <Card
-                    key={quotation._id}
-                    padding="lg"
-                    className="hover:shadow-md transition-all relative group"
-                  >
-                    <div className="absolute top-4 right-4 flex gap-2 z-10">
-                      <button
-                        onClick={() => handleViewDetails(quotation)}
-                        className="p-2 rounded-lg bg-white/90 hover:bg-white border border-gray-200 shadow-sm transition-all hover:scale-110"
-                        title="View Details"
-                      >
-                        <Eye className="h-4 w-4 text-gray-700" />
-                      </button>
-                      {quotation.status === "pending" && (
-                        <button
-                          onClick={() => handleOpenQuoteModal(quotation)}
-                          className="p-2 rounded-lg bg-blue-50 hover:bg-blue-100 border border-blue-200 shadow-sm transition-all hover:scale-110"
-                          title="Add Pricing"
-                        >
-                          <Edit className="h-4 w-4 text-blue-700" />
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="flex flex-col gap-3 mb-4 pr-20">
-                      <div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <h3 className="text-lg font-semibold text-gray-900">
-                            {quotation.serviceTitle || "Service Request"}
-                          </h3>
+                    return (
+                      <tr key={quotation._id} className="hover:bg-gray-50">
+                        <td className="border border-gray-300 px-4 py-3 text-xs font-medium">
+                          {quotation.quotationNumber}
+                        </td>
+                        <td className="border border-gray-300 px-4 py-3 text-xs">
+                          {quotation.serviceDetails?.supportItemNumber || "N/A"}
+                        </td>
+                        <td className="border border-gray-300 px-4 py-3 text-xs">
+                          {quotation.serviceDetails?.serviceName ||
+                            quotation.serviceTitle ||
+                            "Service Request"}
+                        </td>
+                        <td className="border border-gray-300 px-4 py-3 text-xs">
+                          {quotation.serviceDetails?.registrationGroup || "N/A"}
+                        </td>
+                        <td className="border border-gray-300 px-4 py-3 text-xs">
+                          <div>{serviceDay}</div>
+                          <div className="text-gray-600">
+                            {quotation.scheduledTime || "Not set"}
+                          </div>
+                        </td>
+                        <td className="border border-gray-300 px-4 py-3 text-xs text-center">
+                          {quotation.serviceHours || "N/A"}
+                        </td>
+                        <td className="border border-gray-300 px-4 py-3 text-xs text-right font-semibold">
+                          {quotation.quotedPrice
+                            ? formatAUD(quotation.quotedPrice)
+                            : "Pending"}
+                        </td>
+                        <td className="border border-gray-300 px-4 py-3 text-xs">
+                          {quotation.customerInfo?.name || "N/A"}
+                        </td>
+                        <td className="border border-gray-300 px-4 py-3 text-center">
                           <Badge color={getStatusColor(quotation.status)}>
-                            <StatusIcon className="h-3 w-3 mr-1" />
+                            <StatusIcon className="h-3 w-3 mr-1 inline" />
                             {quotation.status.replace("-", " ")}
                           </Badge>
-                        </div>
-                        <p className="text-sm text-gray-600 mb-1">
-                          Quotation #: {quotation.quotationNumber}
-                        </p>
-                        <div className="flex items-center gap-4 text-sm text-gray-600">
-                          <span className="flex items-center gap-1">
-                            <Calendar className="h-3 w-3" />
-                            {quotation.scheduledDate
-                              ? new Date(
-                                  quotation.scheduledDate
-                                ).toLocaleDateString()
-                              : "Not scheduled"}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {quotation.scheduledTime || "Not set"}
-                          </span>
-                          {quotation.quotedPrice && (
-                            <span className="flex items-center gap-1 font-medium text-green-600">
-                              <DollarSign className="h-3 w-3" />
-                              {formatAUD(quotation.quotedPrice)}
-                            </span>
-                          )}
-                        </div>
-                        <div className="mt-2 text-sm text-gray-600">
-                          <span className="flex items-center gap-1">
-                            <User className="h-3 w-3" />
-                            {quotation.customerInfo?.name || "N/A"}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {quotation.status === "pending" && (
-                      <div className="flex gap-2 mt-4">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleOpenQuoteModal(quotation)}
-                        >
-                          <Edit className="h-4 w-4 mr-2" />
-                          Add Pricing
-                        </Button>
-                      </div>
-                    )}
-
-                    {quotation.status === "quoted" && (
-                      <div className="flex gap-2 mt-4">
-                        <Button
-                          size="sm"
-                          onClick={() => handleApproveQuotation(quotation._id)}
-                        >
-                          <CheckCircle className="h-4 w-4 mr-2" />
-                          Approve & Create Booking
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleRejectQuotation(quotation._id)}
-                        >
-                          <XCircle className="h-4 w-4 mr-2" />
-                          Reject
-                        </Button>
-                      </div>
-                    )}
-                  </Card>
-                );
-              })}
+                        </td>
+                        <td className="border border-gray-300 px-4 py-3 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => handleViewDetails(quotation)}
+                              className="p-1 text-blue-600 hover:text-blue-800"
+                              title="View Details"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </button>
+                            {quotation.status === "pending" && (
+                              <button
+                                onClick={() => handleOpenQuoteModal(quotation)}
+                                className="p-1 text-green-600 hover:text-green-800"
+                                title="Add Pricing"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </button>
+                            )}
+                            {quotation.status === "quoted" && (
+                              <>
+                                <button
+                                  onClick={() =>
+                                    handleApproveQuotation(quotation._id)
+                                  }
+                                  className="p-1 text-blue-600 hover:text-blue-800"
+                                  title="Approve"
+                                >
+                                  <CheckCircle className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    handleRejectQuotation(quotation._id)
+                                  }
+                                  className="p-1 text-red-600 hover:text-red-800"
+                                  title="Reject"
+                                >
+                                  <XCircle className="h-4 w-4" />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
 
             {/* Pagination */}

@@ -24,6 +24,11 @@ const PaymentStep = ({
   isCalculatingPrice = false,
   state = null,
   exactService = null,
+  bookingType = "oneTime",
+  startDate = null,
+  endDate = null,
+  selectedDays = [],
+  serviceHours = null,
 }) => {
   // Helper to check if error should be shown
   const shouldShowError = (fieldName) => {
@@ -73,6 +78,11 @@ const PaymentStep = ({
         isCalculatingPrice={isCalculatingPrice}
         state={state}
         exactService={exactService}
+        bookingType={bookingType}
+        startDate={startDate}
+        endDate={endDate}
+        selectedDays={selectedDays}
+        serviceHours={serviceHours}
       />
 
       {isHealthServiceWithInsurance && (

@@ -10,7 +10,22 @@ const BookingSummary = ({
   isCalculatingPrice = false,
   state = null,
   exactService = null,
+  bookingType = "oneTime",
+  startDate = null,
+  endDate = null,
+  selectedDays = [],
+  serviceHours = null,
 }) => {
+  // Days of week labels
+  const daysOfWeek = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ];
   const serviceName =
     exactService?.supportItemName ||
     service?.title ||
@@ -53,18 +68,72 @@ const BookingSummary = ({
             <span className="font-medium">{exactService.condition}</span>
           </div>
         )}
-        <div className="flex justify-between">
-          <span className="text-gray-600">Date:</span>
-          <span className="font-medium">
-            {selectedDate
-              ? format(selectedDate, "EEEE, MMMM d, yyyy")
-              : "Not selected"}
-          </span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-gray-600">Time:</span>
-          <span className="font-medium">{selectedTime || "Not selected"}</span>
-        </div>
+        {bookingType === "oneTime" ? (
+          <>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Date:</span>
+              <span className="font-medium">
+                {selectedDate
+                  ? format(selectedDate, "EEEE, MMMM d, yyyy")
+                  : "Not selected"}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Time:</span>
+              <span className="font-medium">
+                {selectedTime || "Not selected"}
+              </span>
+            </div>
+            {serviceHours && (
+              <div className="flex justify-between">
+                <span className="text-gray-600">Service Hours:</span>
+                <span className="font-medium">{serviceHours} hours</span>
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Start Date:</span>
+              <span className="font-medium">
+                {startDate
+                  ? format(startDate, "EEEE, MMMM d, yyyy")
+                  : "Not selected"}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">End Date:</span>
+              <span className="font-medium">
+                {endDate
+                  ? format(endDate, "EEEE, MMMM d, yyyy")
+                  : "Not selected"}
+              </span>
+            </div>
+            {selectedDays.length > 0 && (
+              <div className="flex justify-between">
+                <span className="text-gray-600">Service Days:</span>
+                <span className="font-medium text-right max-w-xs">
+                  {selectedDays
+                    .sort()
+                    .map((d) => daysOfWeek[d])
+                    .join(", ")}
+                </span>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span className="text-gray-600">Time:</span>
+              <span className="font-medium">
+                {selectedTime || "Not selected"}
+              </span>
+            </div>
+            {serviceHours && (
+              <div className="flex justify-between">
+                <span className="text-gray-600">Service Hours per Day:</span>
+                <span className="font-medium">{serviceHours} hours</span>
+              </div>
+            )}
+          </>
+        )}
         <div className="border-t pt-2 mt-2">
           <div className="flex justify-between items-center">
             <span className="text-gray-600 font-medium">Total Price:</span>

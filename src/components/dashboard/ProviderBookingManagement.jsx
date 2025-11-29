@@ -30,6 +30,7 @@ import Modal from "../ui/Modal";
 import ESignatureModal from "../ui/ESignatureModal";
 import ProviderStatusUpdateCard from "./ProviderStatusUpdateCard";
 import LocationTrackingManager from "./LocationTrackingManager";
+import { formatAUD } from "../../utils/pricingUtils";
 
 const ProviderBookingManagement = () => {
   const navigate = useNavigate();
@@ -652,8 +653,8 @@ const ProviderBookingManagement = () => {
         </div>
       </div>
 
-      {/* Bookings List */}
-      <div className="grid gap-4">
+      {/* Bookings Table */}
+      <div className="overflow-x-auto">
         {!filteredBookings || filteredBookings.length === 0 ? (
           <Card padding="lg" className="text-center shadow-none">
             <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -669,148 +670,149 @@ const ProviderBookingManagement = () => {
             </p>
           </Card>
         ) : (
-          filteredBookings &&
-          filteredBookings.length > 0 &&
-          filteredBookings.map((booking) => {
-            const StatusIcon = getStatusIcon(booking.status);
+          <table className="w-full border-collapse border border-gray-300 bg-white">
+            <thead>
+              <tr className="bg-blue-600 text-white">
+                <th className="border border-gray-300 px-4 py-3 text-left text-xs font-semibold">
+                  Booking #
+                </th>
+                <th className="border border-gray-300 px-4 py-3 text-left text-xs font-semibold">
+                  Support Item #
+                </th>
+                <th className="border border-gray-300 px-4 py-3 text-left text-xs font-semibold">
+                  Support Item Name
+                </th>
+                <th className="border border-gray-300 px-4 py-3 text-left text-xs font-semibold">
+                  Reg. Group
+                </th>
+                <th className="border border-gray-300 px-4 py-3 text-left text-xs font-semibold">
+                  Day & Time
+                </th>
+                <th className="border border-gray-300 px-4 py-3 text-center text-xs font-semibold">
+                  Hours
+                </th>
+                <th className="border border-gray-300 px-4 py-3 text-right text-xs font-semibold">
+                  Pricing
+                </th>
+                <th className="border border-gray-300 px-4 py-3 text-center text-xs font-semibold">
+                  Status
+                </th>
+                <th className="border border-gray-300 px-4 py-3 text-center text-xs font-semibold">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredBookings.map((booking) => {
+                const StatusIcon = getStatusIcon(booking.status);
+                const serviceDay = new Date(
+                  booking.scheduledDate
+                ).toLocaleDateString("en-AU", {
+                  weekday: "long",
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                });
 
-            return (
-              <Card
-                key={booking._id}
-                padding="lg"
-                className="hover:shadow-md transition-all relative group cursor-pointer"
-                onClick={() => navigate(`/provider/bookings/${booking._id}`)}
-              >
-                {/* Shortcut Icon Buttons - Top Right */}
-                <div
-                  className="absolute top-4 right-4 flex gap-2 z-10"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <button
-                    onClick={() => {
-                      navigate(`/provider/bookings/${booking._id}`);
-                    }}
-                    className="p-2 rounded-lg bg-white/90 hover:bg-white border border-gray-200 shadow-sm transition-all hover:scale-110"
-                    title="View Details"
+                return (
+                  <tr
+                    key={booking._id}
+                    className="hover:bg-gray-50 cursor-pointer"
+                    onClick={() =>
+                      navigate(`/provider/bookings/${booking._id}`)
+                    }
                   >
-                    <Eye className="h-4 w-4 text-gray-700" />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      fetchBookingLogs(booking._id);
-                    }}
-                    className="p-2 rounded-lg bg-white/90 hover:bg-white border border-gray-200 shadow-sm transition-all hover:scale-110"
-                    title="View Status History"
-                  >
-                    <History className="h-4 w-4 text-gray-700" />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      downloadInvoice(booking._id, false);
-                    }}
-                    className="p-2 rounded-lg bg-white/90 hover:bg-white border border-gray-200 shadow-sm transition-all hover:scale-110"
-                    title="Download Invoice"
-                  >
-                    <Download className="h-4 w-4 text-gray-700" />
-                  </button>
-                  {booking.status === "completed" &&
-                    booking.eSignature?.signature && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          downloadInvoice(booking._id, true);
-                        }}
-                        className="p-2 rounded-lg bg-white/90 hover:bg-white border border-gray-200 shadow-sm transition-all hover:scale-110"
-                        title="Download E-Signed Invoice"
-                      >
-                        <FileText className="h-4 w-4 text-gray-700" />
-                      </button>
-                    )}
-                </div>
-
-                <div className="flex flex-col gap-3 mb-4 pr-20">
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        {booking.serviceTitle ||
-                          booking.service?.title ||
-                          "Healthcare Service"}
-                      </h3>
+                    <td className="border border-gray-300 px-4 py-3 text-xs font-medium">
+                      {booking.bookingNumber}
+                    </td>
+                    <td className="border border-gray-300 px-4 py-3 text-xs">
+                      {booking.serviceDetails?.supportItemNumber || "N/A"}
+                    </td>
+                    <td className="border border-gray-300 px-4 py-3 text-xs">
+                      {booking.serviceDetails?.serviceName ||
+                        booking.serviceTitle ||
+                        booking.service?.title ||
+                        "Service"}
+                    </td>
+                    <td className="border border-gray-300 px-4 py-3 text-xs">
+                      {booking.serviceDetails?.registrationGroup || "N/A"}
+                    </td>
+                    <td className="border border-gray-300 px-4 py-3 text-xs">
+                      <div>{serviceDay}</div>
+                      <div className="text-gray-600">
+                        {booking.scheduledTime}
+                      </div>
+                    </td>
+                    <td className="border border-gray-300 px-4 py-3 text-xs text-center">
+                      {booking.serviceHours ||
+                        (booking.bookingType === "dateRange"
+                          ? "Multiple"
+                          : "N/A")}
+                    </td>
+                    <td className="border border-gray-300 px-4 py-3 text-xs text-right font-semibold">
+                      {booking.totalAmount !== null &&
+                      booking.totalAmount !== undefined
+                        ? formatAUD(booking.totalAmount)
+                        : "N/A"}
+                    </td>
+                    <td className="border border-gray-300 px-4 py-3 text-center">
                       <Badge color={getStatusColor(booking.status)}>
-                        <StatusIcon className="h-3 w-3 mr-1" />
+                        <StatusIcon className="h-3 w-3 mr-1 inline" />
                         {booking.status.replace("-", " ")}
                       </Badge>
-                    </div>
-                    <p className="text-sm text-gray-600 mb-1">
-                      Booking #: {booking.bookingNumber}
-                    </p>
-                    <div className="flex items-center gap-4 text-sm text-gray-600">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        {new Date(booking.scheduledDate).toLocaleDateString()}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {booking.scheduledTime}
-                      </span>
-                      <span className="font-medium text-green-600">
-                        ₹{booking.totalAmount}
-                      </span>
-                    </div>
-                    {/* Location Tracking Information */}
-                    {booking.providerLocation?.isTracking &&
-                      (booking.status === "provider-on-way" ||
-                        booking.status === "provider-started" ||
-                        booking.status === "work-started" ||
-                        booking.status === "in-progress" ||
-                        booking.status === "confirmed") && (
-                        <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                          <div className="flex items-center gap-2 text-sm text-blue-700 mb-1">
-                            <Navigation className="h-4 w-4 animate-pulse" />
-                            <span className="font-semibold">
-                              Location Tracking Active
-                            </span>
-                          </div>
-                          {booking.providerLocation?.lastUpdated && (
-                            <p className="text-xs text-blue-600 ml-6">
-                              Last updated:{" "}
-                              {new Date(
-                                booking.providerLocation.lastUpdated
-                              ).toLocaleTimeString()}{" "}
-                              (
-                              {Math.round(
-                                (new Date() -
-                                  new Date(
-                                    booking.providerLocation.lastUpdated
-                                  )) /
-                                  1000 /
-                                  60
-                              )}{" "}
-                              min ago)
-                            </p>
+                    </td>
+                    <td className="border border-gray-300 px-4 py-3 text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/provider/bookings/${booking._id}`);
+                          }}
+                          className="p-1 text-blue-600 hover:text-blue-800"
+                          title="View Details"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            fetchBookingLogs(booking._id);
+                          }}
+                          className="p-1 text-gray-600 hover:text-gray-800"
+                          title="View Status History"
+                        >
+                          <History className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            downloadInvoice(booking._id, false);
+                          }}
+                          className="p-1 text-green-600 hover:text-green-800"
+                          title="Download Invoice"
+                        >
+                          <Download className="h-4 w-4" />
+                        </button>
+                        {booking.status === "completed" &&
+                          booking.eSignature?.signature && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                downloadInvoice(booking._id, true);
+                              }}
+                              className="p-1 text-purple-600 hover:text-purple-800"
+                              title="Download E-Signed Invoice"
+                            >
+                              <FileText className="h-4 w-4" />
+                            </button>
                           )}
-                          {booking.providerLocation?.latitude &&
-                            booking.providerLocation?.longitude && (
-                              <a
-                                href={`https://www.google.com/maps?q=${booking.providerLocation.latitude},${booking.providerLocation.longitude}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="ml-6 text-xs text-blue-600 hover:text-blue-800 underline flex items-center gap-1 mt-1"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <MapPin className="h-3 w-3" />
-                                View on Map
-                              </a>
-                            )}
-                        </div>
-                      )}
-                  </div>
-                </div>
-              </Card>
-            );
-          })
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         )}
       </div>
 
@@ -898,7 +900,11 @@ const ProviderBookingManagement = () => {
                     {selectedBooking.address?.pincode}
                   </p>
                   <p className="font-medium text-green-600 text-lg">
-                    Total Amount: ₹{selectedBooking.totalAmount}
+                    Total Amount:{" "}
+                    {selectedBooking.totalAmount !== null &&
+                    selectedBooking.totalAmount !== undefined
+                      ? formatAUD(selectedBooking.totalAmount)
+                      : "Price not available"}
                   </p>
                 </div>
               </div>

@@ -1483,14 +1483,22 @@ export const myCRTServicesData = [
 const getEstimatedPriceRange = (service) => {
   const basePrice = service.basePrice || 0;
 
+  // Format price in AUD
+  const formattedPrice = new Intl.NumberFormat("en-AU", {
+    style: "currency",
+    currency: "AUD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(basePrice);
+
   if (service.priceUnit?.includes("day")) {
-    return `₹${basePrice.toLocaleString("en-IN")} per day`;
+    return `${formattedPrice} per day`;
   } else if (service.priceUnit?.includes("month")) {
-    return `₹${basePrice.toLocaleString("en-IN")} per month`;
+    return `${formattedPrice} per month`;
   } else if (service.priceUnit?.includes("night")) {
-    return `₹${basePrice.toLocaleString("en-IN")} per night`;
+    return `${formattedPrice} per night`;
   } else {
-    return `₹${basePrice.toLocaleString("en-IN")} per service`;
+    return `${formattedPrice} per service`;
   }
 };
 

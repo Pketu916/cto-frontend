@@ -1,7 +1,13 @@
 import React from "react";
 import { STEP_LABELS } from "./bookingFormConstants";
 
-const StepIndicator = ({ currentStep, totalSteps, getStepStatus }) => {
+const StepIndicator = ({
+  currentStep,
+  totalSteps,
+  getStepStatus,
+  stepLabels,
+}) => {
+  const labels = stepLabels || STEP_LABELS;
   const steps = Array.from({ length: totalSteps }, (_, i) => i + 1);
 
   return (
@@ -66,7 +72,7 @@ const StepIndicator = ({ currentStep, totalSteps, getStepStatus }) => {
                       : "text-gray-500"
                   }`}
                 >
-                  {STEP_LABELS[stepNumber] || `Step ${stepNumber}`}
+                  {labels[stepNumber] || `Step ${stepNumber}`}
                 </span>
                 {stepNumber < totalSteps && (
                   <div

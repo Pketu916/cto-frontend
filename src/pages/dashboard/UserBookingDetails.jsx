@@ -28,6 +28,7 @@ import {
   StatusDot,
 } from "../../components/ui";
 import { bookingsAPI } from "../../services/api";
+import { formatAUD } from "../../utils/pricingUtils";
 
 const UserBookingDetails = () => {
   const { bookingId } = useParams();
@@ -366,7 +367,98 @@ const UserBookingDetails = () => {
                 <div>
                   <p className="text-gray-600">Total Amount</p>
                   <p className="font-semibold text-lg text-green-600">
-                    ₹{booking.totalAmount}
+                    {booking.totalAmount !== null &&
+                    booking.totalAmount !== undefined
+                      ? formatAUD(booking.totalAmount)
+                      : "Price not available"}
+                  </p>
+                </div>
+              </div>
+            </Card>
+
+            {/* Invoice Table */}
+            <Card padding="lg">
+              <h3 className="font-semibold text-gray-900 mb-4">
+                Invoice Details
+              </h3>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse border border-gray-300">
+                  <thead>
+                    <tr className="bg-blue-600 text-white">
+                      <th className="border border-gray-300 px-4 py-2 text-left text-xs font-semibold">
+                        Support Item #
+                      </th>
+                      <th className="border border-gray-300 px-4 py-2 text-left text-xs font-semibold">
+                        Support Item Name
+                      </th>
+                      <th className="border border-gray-300 px-4 py-2 text-left text-xs font-semibold">
+                        Reg. Group
+                      </th>
+                      <th className="border border-gray-300 px-4 py-2 text-left text-xs font-semibold">
+                        Day & Time
+                      </th>
+                      <th className="border border-gray-300 px-4 py-2 text-center text-xs font-semibold">
+                        Hours
+                      </th>
+                      <th className="border border-gray-300 px-4 py-2 text-right text-xs font-semibold">
+                        Pricing
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="bg-white hover:bg-gray-50">
+                      <td className="border border-gray-300 px-4 py-2 text-xs">
+                        {booking.serviceDetails?.supportItemNumber || "N/A"}
+                      </td>
+                      <td className="border border-gray-300 px-4 py-2 text-xs">
+                        {booking.serviceDetails?.serviceName ||
+                          booking.serviceTitle ||
+                          "Service"}
+                      </td>
+                      <td className="border border-gray-300 px-4 py-2 text-xs">
+                        {booking.serviceDetails?.registrationGroup || "N/A"}
+                      </td>
+                      <td className="border border-gray-300 px-4 py-2 text-xs">
+                        <div>
+                          {new Date(booking.scheduledDate).toLocaleDateString(
+                            "en-AU",
+                            {
+                              weekday: "long",
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            }
+                          )}
+                        </div>
+                        <div className="text-gray-600">
+                          {booking.scheduledTime}
+                        </div>
+                      </td>
+                      <td className="border border-gray-300 px-4 py-2 text-xs text-center">
+                        {booking.serviceHours ||
+                          (booking.bookingType === "dateRange"
+                            ? "Multiple"
+                            : "N/A")}
+                      </td>
+                      <td className="border border-gray-300 px-4 py-2 text-xs text-right font-semibold">
+                        {booking.totalAmount !== null &&
+                        booking.totalAmount !== undefined
+                          ? formatAUD(booking.totalAmount)
+                          : "N/A"}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <div className="mt-4 text-right">
+                  <p className="text-sm font-semibold text-gray-900">
+                    Total Amount:{" "}
+                    {booking.totalAmount !== null &&
+                    booking.totalAmount !== undefined
+                      ? formatAUD(booking.totalAmount)
+                      : "Price not available"}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    All prices in Australian Dollars (AUD)
                   </p>
                 </div>
               </div>

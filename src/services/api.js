@@ -437,4 +437,19 @@ export const quotationsAPI = {
   },
 };
 
+// Membership API
+export const membershipAPI = {
+  // Submit Membership Form
+  submitMembership: async (membershipData) => {
+    const response = await api.post("/membership/submit", membershipData);
+    return response.data;
+  },
+
+  // Get Membership Details
+  getMembershipDetails: async (membershipId) => {
+    const response = await api.get(`/membership/${membershipId}`);
+    return response.data;
+  },
+};
+
 export default api;

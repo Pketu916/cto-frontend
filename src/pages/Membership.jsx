@@ -4,9 +4,11 @@ import { Footer } from "../components/navigation";
 import { PageContainer, HeroSection, CTASection } from "../components/layout";
 import { Card, Button, FAQSection } from "../components/ui";
 import { CheckCircle, Users, Home, Building2, Heart } from "lucide-react";
+import MembershipForm from "../components/forms/MembershipForm";
 
 const Membership = () => {
   const [selectedPlan, setSelectedPlan] = useState(null);
+  const [showForm, setShowForm] = useState(false);
 
   const membershipPlans = [
     {
@@ -222,12 +224,12 @@ const Membership = () => {
                         <span className="text-gray-600 ml-2">/year</span>
                       </div>
 
-                      <Link
-                        to="/register/user"
+                      <button
+                        onClick={() => setShowForm(true)}
                         className={`w-full inline-flex justify-center items-center px-6 py-3 border border-transparent rounded-lg text-base font-medium text-white bg-gradient-to-r ${colorClasses.gradient} hover:opacity-90 transition-opacity duration-200`}
                       >
                         Get Started
-                      </Link>
+                      </button>
                     </div>
 
                     <div className="space-y-4">
@@ -262,96 +264,125 @@ const Membership = () => {
           </div>
         </section>
 
+        {/* Membership Form */}
+        {showForm && (
+          <section className="py-20 bg-white">
+            <div className="max-w-7xl mx-auto px-6">
+              <div className="mb-8">
+                <button
+                  onClick={() => setShowForm(false)}
+                  className="text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  ← Back to Membership Plans
+                </button>
+              </div>
+              <MembershipForm
+                onSuccess={(data) => {
+                  console.log("Membership submitted:", data);
+                  setShowForm(false);
+                }}
+                onCancel={() => setShowForm(false)}
+              />
+            </div>
+          </section>
+        )}
+
         {/* Registration Process */}
-        <section className="py-20 bg-gray-50">
-          <div className="max-w-6xl mx-auto px-6">
-            <div className="text-center mb-12">
-              <h2 className="text-4xl font-bold text-gray-900 mb-4">
-                Membership Registration Process
-              </h2>
-              <p className="text-xl text-gray-600">
-                Simple steps to get started with MyCRT
-              </p>
+        {!showForm && (
+          <section className="py-20 bg-gray-50">
+            <div className="max-w-6xl mx-auto px-6">
+              <div className="text-center mb-12">
+                <h2 className="text-4xl font-bold text-gray-900 mb-4">
+                  Membership Registration Process
+                </h2>
+                <p className="text-xl text-gray-600">
+                  Simple steps to get started with MyCRT
+                </p>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-8">
+                <Card className="p-8">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-6">
+                    Step 1: Complete Online Registration
+                  </h3>
+                  <p className="text-gray-600 mb-6">
+                    Fill out our online registration form with your basic
+                    information and membership plan selection.
+                  </p>
+                </Card>
+
+                <Card className="p-8">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-6">
+                    Step 2: Provide Care Readiness Information
+                  </h3>
+                  <ul className="space-y-3 text-gray-600">
+                    <li className="flex items-start">
+                      <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
+                      <span>Medical history and care needs</span>
+                    </li>
+                    <li className="flex items-start">
+                      <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
+                      <span>Consent for health information exchange</span>
+                    </li>
+                    <li className="flex items-start">
+                      <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
+                      <span>Next of kin and emergency contact</span>
+                    </li>
+                    <li className="flex items-start">
+                      <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
+                      <span>Home risk assessment and medication plan</span>
+                    </li>
+                    <li className="flex items-start">
+                      <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
+                      <span>Participant ID (NDIS, My Aged Care, etc.)</span>
+                    </li>
+                  </ul>
+                </Card>
+
+                <Card className="p-8">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-6">
+                    Step 3: Review & Sign Service Agreement
+                  </h3>
+                  <p className="text-gray-600 mb-4">
+                    Review and sign the MyCRT Service Agreement. All data is
+                    securely stored and handled under our Privacy &
+                    Confidentiality Policy in compliance with the Australian
+                    Privacy Principles (APP).
+                  </p>
+                </Card>
+
+                <Card className="p-8">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-6">
+                    Step 4: Receive Login Access
+                  </h3>
+                  <p className="text-gray-600">
+                    Once your registration is complete and membership is
+                    activated, you'll receive login access to track bookings,
+                    invoices, and care reports through your personal dashboard.
+                  </p>
+                </Card>
+              </div>
             </div>
-
-            <div className="grid md:grid-cols-2 gap-8">
-              <Card className="p-8">
-                <h3 className="text-2xl font-bold text-gray-900 mb-6">
-                  Step 1: Complete Online Registration
-                </h3>
-                <p className="text-gray-600 mb-6">
-                  Fill out our online registration form with your basic
-                  information and membership plan selection.
-                </p>
-              </Card>
-
-              <Card className="p-8">
-                <h3 className="text-2xl font-bold text-gray-900 mb-6">
-                  Step 2: Provide Care Readiness Information
-                </h3>
-                <ul className="space-y-3 text-gray-600">
-                  <li className="flex items-start">
-                    <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
-                    <span>Medical history and care needs</span>
-                  </li>
-                  <li className="flex items-start">
-                    <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
-                    <span>Consent for health information exchange</span>
-                  </li>
-                  <li className="flex items-start">
-                    <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
-                    <span>Next of kin and emergency contact</span>
-                  </li>
-                  <li className="flex items-start">
-                    <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
-                    <span>Home risk assessment and medication plan</span>
-                  </li>
-                  <li className="flex items-start">
-                    <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
-                    <span>Participant ID (NDIS, My Aged Care, etc.)</span>
-                  </li>
-                </ul>
-              </Card>
-
-              <Card className="p-8">
-                <h3 className="text-2xl font-bold text-gray-900 mb-6">
-                  Step 3: Review & Sign Service Agreement
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  Review and sign the MyCRT Service Agreement. All data is
-                  securely stored and handled under our Privacy &
-                  Confidentiality Policy in compliance with the Australian
-                  Privacy Principles (APP).
-                </p>
-              </Card>
-
-              <Card className="p-8">
-                <h3 className="text-2xl font-bold text-gray-900 mb-6">
-                  Step 4: Receive Login Access
-                </h3>
-                <p className="text-gray-600">
-                  Once your registration is complete and membership is
-                  activated, you'll receive login access to track bookings,
-                  invoices, and care reports through your personal dashboard.
-                </p>
-              </Card>
-            </div>
-          </div>
-        </section>
+          </section>
+        )}
 
         {/* FAQ Section */}
-        <FAQSection
-          title="Membership Frequently Asked Questions"
-          subtitle="Common questions about MyCRT membership plans and benefits"
-          faqs={faqs}
-        />
+        {!showForm && (
+          <>
+            <FAQSection
+              title="Membership Frequently Asked Questions"
+              subtitle="Common questions about MyCRT membership plans and benefits"
+              faqs={faqs}
+            />
 
-        <CTASection
-          title="Ready to Join MyCRT?"
-          subtitle="Become a member today and get 24/7 priority access to qualified health professionals. Register now and start your care response journey."
-          showServicesButton={false}
-          showContactButton={true}
-        />
+            <CTASection
+              title="Ready to Join MyCRT?"
+              subtitle="Become a member today and get 24/7 priority access to qualified health professionals. Register now and start your care response journey."
+              showServicesButton={false}
+              showContactButton={true}
+            />
+          </>
+        )}
       </PageContainer>
       <Footer />
     </>

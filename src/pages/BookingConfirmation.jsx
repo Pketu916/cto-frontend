@@ -2,9 +2,17 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
-import { CheckCircle, Calendar, Clock, MapPin, Phone, User } from "lucide-react";
+import {
+  CheckCircle,
+  Calendar,
+  Clock,
+  MapPin,
+  Phone,
+  User,
+} from "lucide-react";
 import Button from "../components/ui/Button";
 import Card from "../components/ui/Card";
+import { formatAUD } from "../utils/pricingUtils";
 
 const BookingConfirmation = () => {
   const navigate = useNavigate();
@@ -70,7 +78,9 @@ const BookingConfirmation = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Service Information */}
             <div className="space-y-4">
-              <h3 className="text-lg font-medium text-gray-900">Service Details</h3>
+              <h3 className="text-lg font-medium text-gray-900">
+                Service Details
+              </h3>
               <div className="space-y-3">
                 <div className="flex items-start">
                   <Calendar className="h-5 w-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
@@ -108,7 +118,9 @@ const BookingConfirmation = () => {
 
             {/* Patient Information */}
             <div className="space-y-4">
-              <h3 className="text-lg font-medium text-gray-900">Patient Details</h3>
+              <h3 className="text-lg font-medium text-gray-900">
+                Patient Details
+              </h3>
               <div className="space-y-3">
                 <div className="flex items-start">
                   <User className="h-5 w-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
@@ -146,11 +158,19 @@ const BookingConfirmation = () => {
           {/* Total Amount */}
           <div className="border-t border-gray-200 pt-4 mt-6">
             <div className="flex justify-between items-center">
-              <span className="text-lg font-medium text-gray-900">Total Amount</span>
+              <span className="text-lg font-medium text-gray-900">
+                Total Amount
+              </span>
               <span className="text-xl font-bold text-blue-600">
-                ₹{bookingData.totalAmount}
+                {bookingData.totalAmount !== null &&
+                bookingData.totalAmount !== undefined
+                  ? formatAUD(bookingData.totalAmount)
+                  : "Price not available"}
               </span>
             </div>
+            <p className="text-xs text-gray-500 mt-1 text-right">
+              All prices in Australian Dollars (AUD)
+            </p>
           </div>
         </Card>
 
@@ -184,9 +204,9 @@ const BookingConfirmation = () => {
                   What happens next?
                 </p>
                 <p className="text-sm text-blue-700 mt-1">
-                  You will receive a confirmation call from our team within 30 minutes. 
-                  A service provider will be assigned to your booking and will contact you 
-                  before the scheduled time.
+                  You will receive a confirmation call from our team within 30
+                  minutes. A service provider will be assigned to your booking
+                  and will contact you before the scheduled time.
                 </p>
               </div>
             </div>
