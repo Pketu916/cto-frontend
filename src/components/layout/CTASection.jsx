@@ -28,10 +28,10 @@ const CTASection = ({
   };
 
   // Counter hooks for animated stats
-  const patientsCounter = useCounter(50000, 0, 2500, 200);
+  const patientsCounter = useCounter(500, 0, 2500, 200);
   const providersCounter = useCounter(200, 0, 2000, 400);
   const supportCounter = useCounter(24, 0, 1500, 600);
-  const satisfactionCounter = useCounter(95, 0, 1800, 800);
+  const satisfactionCounter = useCounter(5, 0, 1800, 800);
 
   const variants = {
     default: "bg-primary",
@@ -77,7 +77,7 @@ const CTASection = ({
                 {patientsCounter.count.toLocaleString()}+
               </div>
               <div className="text-blue-100 text-sm md:text-base">
-                Patients Served
+                Participants Housed
               </div>
             </div>
             <div className="text-center">
@@ -88,7 +88,7 @@ const CTASection = ({
                 {providersCounter.count}+
               </div>
               <div className="text-blue-100 text-sm md:text-base">
-                Healthcare Providers
+                Modern Apartments
               </div>
             </div>
             <div className="text-center">
@@ -107,10 +107,10 @@ const CTASection = ({
                 ref={satisfactionCounter.elementRef}
                 className="text-3xl md:text-4xl font-bold text-secondary mb-2"
               >
-                {satisfactionCounter.count}%
+                {satisfactionCounter.count}+
               </div>
               <div className="text-blue-100 text-sm md:text-base">
-                Satisfaction Rate
+                Sydney Locations
               </div>
             </div>
           </div>

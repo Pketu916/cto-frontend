@@ -43,10 +43,10 @@ const About = () => {
   ];
 
   const stats = [
-    { number: "50,000+", label: "Patients Served" },
-    { number: "200+", label: "Healthcare Providers" },
-    { number: "5+", label: "Years of Experience" },
+    { number: "500+", label: "Participants Housed" },
+    { number: "200+", label: "Modern Apartments" },
     { number: "24/7", label: "Medical Support" },
+    { number: "5+", label: "Sydney Locations" },
   ];
 
   return (
@@ -54,10 +54,10 @@ const About = () => {
       <PageContainer maxWidth="full" padding="none">
         {/* Hero Section */}
         <HeroSection
-          title="About MyCRT"
-          subtitle="MyCRT (My Care Response Team) is an innovative 24/7 Care Response and Membership-Based Support Service, purpose-built for NDIS Participants, My Aged Care recipients, carers, and families."
+          title="About CRT Program"
+          subtitle="Community Restoration and Transition Care Program Pathway (CRT). We provide urgent crisis accommodation, a safe haven for participants of all ages who are in challenging and critical situations. Supported by a holistic medical and socially integrated support program that can assist Participants with all types of disabilities."
           image="https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=800&h=600&fit=crop"
-          imageAlt="MyCRT care response team"
+          imageAlt="CRT Program care team"
         />
 
         {/* Scroll Car Animation Section */}
@@ -90,10 +90,11 @@ const About = () => {
                     Our Mission
                   </h3>
                   <p className="text-gray-600 leading-relaxed">
-                    To deliver fast, reliable, and clinically guided care
-                    response services that bridge the gap between planned
-                    supports and real-time needs — reducing risks during crises,
-                    breakdowns, or changes in circumstances.
+                    We provide short to long term accommodation with specialised
+                    care and support to help participants regain functional
+                    independence and confidence sooner. We also support
+                    participants in finding and transition into suitable long
+                    term care and support and specialist accommodation services.
                   </p>
                 </div>
               </Card>
@@ -125,9 +126,11 @@ const About = () => {
                     Our Vision
                   </h3>
                   <p className="text-gray-600 leading-relaxed">
-                    We work together to make a difference in the lives of
-                    vulnerable people by ensuring care, compassion, respect, and
-                    trust are always available — anytime, anywhere.
+                    To provide cutting-edge care solutions that streamline
+                    complex processes and improve user experience through
+                    advanced automation and intuitive interfaces. Empowering
+                    participants with choice, freedom and control they are
+                    looking for.
                   </p>
                 </div>
               </Card>
@@ -137,8 +140,8 @@ const About = () => {
 
         {/* CTA Section - Replacing Achievements */}
         <CTASection
-          title="Our Achievements & Impact"
-          subtitle="Join thousands of patients who trust CTO India for their healthcare needs. Experience our proven track record of excellence and innovation in healthcare delivery."
+          title="Why Choose CRT Program"
+          subtitle="Over 200 apartments across Sydney housing 500 participants. Modern accommodation, maximum of 2 people sharing. We have a broad range of specialists on staff including pain management specialists, cardiologists, A&E specialists, nephrologists, psychiatrists and rehab specialists."
           showServicesButton={true}
           showContactButton={true}
         />
@@ -151,8 +154,9 @@ const About = () => {
                 Our Team
               </h2>
               <p className="text-gray-600">
-                Experienced healthcare professionals dedicated to transforming
-                patient care
+                Experienced healthcare professionals dedicated to supporting
+                NDIS and Aged Care participants with specialised accommodation
+                and care services
               </p>
             </div>
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">

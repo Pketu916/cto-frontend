@@ -119,7 +119,12 @@ const Contact = () => {
         </svg>
       ),
       title: "Address",
-      details: ["MyCRT Office", "Australia", "Available Australia-wide"],
+      details: [
+        "Sydney Locations:",
+        "Westmead, Mt Druitt, Carlingford",
+        "Granville, Merrylands",
+        "Available across Sydney",
+      ],
       action: "Get Directions",
     },
     {
@@ -153,10 +158,10 @@ const Contact = () => {
       <PageContainer maxWidth="full" padding="none">
         {/* Hero Section */}
         <HeroSection
-          title="Contact Us"
-          subtitle="Need help with your healthcare needs? Our expert team is always ready to assist you. Whether you have questions about our services, need medical consultation, or want to partner with us - we're here to help."
+          title="Contact CRT Program"
+          subtitle="Need help with accommodation, NDIS services, or Aged Care support? Our expert team is always ready to assist you. Whether you're in crisis, need accommodation, or have questions about our services - we're here to help 24/7."
           image="https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=800&h=600&fit=crop"
-          imageAlt="Healthcare support team"
+          imageAlt="CRT Program support team"
         />
 
         {/* Contact Info Cards */}
@@ -331,9 +336,7 @@ const Contact = () => {
                         />
                       </svg>
                       <p className="text-gray-500">Interactive Map</p>
-                      <p className="text-sm text-gray-400">
-                        Tech Park, Gurgaon
-                      </p>
+                      <p className="text-sm text-gray-400">Sydney, Australia</p>
                     </div>
                   </div>
                 </Card>
@@ -432,34 +435,34 @@ const Contact = () => {
           subtitle="Find answers to common questions here"
           faqs={[
             {
-              question: "What healthcare services do you provide?",
+              question: "What services does CRT Program provide?",
               answer:
-                "We provide telehealth consultations, home nursing care, patient transport, diagnostic imaging, medical equipment rental, and rehabilitation services.",
+                "We provide accommodation services (SDA, MTA, STA, ILO), NDIS services, Aged Care support, Night Riders overnight care, specialist medical and nursing care, therapy support, home modifications, assistive technology, and capacity building programs.",
             },
             {
-              question: "How quickly can I get medical assistance?",
+              question: "Where are your accommodation facilities located?",
               answer:
-                "For urgent cases, we provide immediate assistance within 30 minutes. For routine consultations, appointments can be scheduled within 24 hours.",
+                "We have over 200 modern apartments across Sydney in Westmead, Mt Druitt, Carlingford, Granville, and Merrylands. Maximum of 2 people sharing per apartment.",
             },
             {
               question: "How do I get support?",
               answer:
-                "We provide 24/7 medical support through phone, email, WhatsApp, and our mobile app. Our medical team is always available to assist you.",
+                "Call our 24/7 helpline at 1800 40 30 50, email us at info@crtprogram.com, or use our online intake form. We provide emergency and after-hours support for NDIS and Aged Care participants.",
             },
             {
-              question: "How is pricing calculated?",
+              question: "What is the CRT Cadetship Program?",
               answer:
-                "Pricing depends on the type of service, duration, and complexity. We offer competitive rates and transparent pricing with no hidden costs.",
+                "The CRT Cadetship is a 2 year program for students in years 10-12 in NSW schools enabling them to get first hand experience working with NDIS and Aged care participants. At the end they will graduate with a Cert IV in Disability or a Diploma in Nursing.",
             },
             {
-              question: "Are your services available across India?",
+              question: "Are your services available for NDIS participants?",
               answer:
-                "Yes, our services are available in major cities across India. We are continuously expanding to cover more locations.",
+                "Yes, we provide comprehensive NDIS services including accommodation, assisted daily living, capacity building, education & training, home modification, medical specialist care, therapy support, assistive technology, and SIL services.",
             },
             {
-              question: "How do I book a service?",
+              question: "How do I book accommodation or services?",
               answer:
-                "You can book services through our website, mobile app, or by calling our helpline. Our booking process is simple and user-friendly.",
+                "You can book through our website, call our helpline 1800 40 30 50, or fill out our online intake form. We provide urgent crisis accommodation and support for participants in challenging situations.",
             },
           ]}
         />
@@ -467,8 +470,8 @@ const Contact = () => {
 
       {/* CTA Section */}
       <CTASection
-        title="Need Immediate Medical Assistance?"
-        subtitle="Our 24/7 medical support team is always ready to help. Contact us now for urgent healthcare needs or book a consultation."
+        title="Need Crisis Accommodation or Support?"
+        subtitle="Our 24/7 helpline is always ready to help. Contact us now for urgent accommodation needs, crisis support, or to book our services. We support NDIS and Aged Care participants in crisis, disaster, or change of circumstance."
         showServicesButton={true}
         showContactButton={false}
       />

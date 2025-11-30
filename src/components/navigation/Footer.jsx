@@ -7,12 +7,12 @@ import Logo1 from "../../assets/Logo1.jpg";
 
 const footerData = {
   services: [
-    { text: "24/7 Care Response", href: "/services" },
-    { text: "Nursing & Clinical Care", href: "/services" },
-    { text: "Mental Health Support", href: "/services" },
-    { text: "Emergency Response", href: "/services" },
-    { text: "Pharmacy & Pathology", href: "/services" },
-    { text: "Clinical Team", href: "/clinical-team" },
+    { text: "Accommodation (SDA, MTA, STA, ILO)", href: "/services" },
+    { text: "Night Riders", href: "/services" },
+    { text: "NDIS Services", href: "/services" },
+    { text: "Aged Care", href: "/services" },
+    { text: "Specialist Medical Care", href: "/services" },
+    { text: "Therapy Support", href: "/services" },
   ],
   features: [
     { text: "How It Works", href: "/how-it-works" },
@@ -30,11 +30,11 @@ const footerData = {
     { text: "Eligibility", href: "/eligibility" },
   ],
   company: [
-    { text: "About MyCRT", href: "/about" },
-    { text: "How It Works", href: "/how-it-works" },
-    { text: "Contact", href: "/contact" },
-    { text: "Clinical Team", href: "/clinical-team" },
-    { text: "Membership", href: "/membership" },
+    { text: "About CRT Program", href: "/about" },
+    { text: "CRT Pathway", href: "/how-it-works" },
+    { text: "Contact Us", href: "/contact" },
+    { text: "CRT Cadetship", href: "/cadetship" },
+    { text: "Careers", href: "/careers" },
   ],
   legal: [
     { text: "Privacy Policy", href: "/privacy" },
@@ -74,12 +74,13 @@ const Footer = () => {
               </Link>
             </div>
             <p className="text-white font-medium m-0">1800 40 30 50</p>
-            <FooterLink href="mailto:info@mycrt.com.au">
-              info@mycrt.com.au
+            <FooterLink href="mailto:info@crtprogram.com">
+              info@crtprogram.com
             </FooterLink>
-            <FooterLink href="https://www.mycrt.com.au" className="text-sm">
-              www.mycrt.com.au
+            <FooterLink href="https://crtprogram.com" className="text-sm">
+              www.crtprogram.com
             </FooterLink>
+            <p className="text-white text-sm mt-2">ABN: 66 635 074 903</p>
 
             {/* Social Icons */}
             <SocialIcons />
@@ -98,7 +99,9 @@ const Footer = () => {
         <div className="border-t border-gray-600 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center md:gap-4 gap-2">
             <p className="text-gray-300 m-0">
-              © MyCRT (My Care Response Team) 2025
+              © CRT Program (Community Restoration and Transition Care Program)
+              2025. CRT PROGRAM©️copyright 2019-2028 All Rights Reserved
+              Innovation patent Award - IP Australia
             </p>
             <div className="flex flex-wrap gap-6">
               {footerData.legal.map((link, index) => (

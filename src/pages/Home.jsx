@@ -115,8 +115,8 @@ const Home = () => {
 
         {/* CTA Section */}
         <CTASection
-          title="Ready to Transform Your Healthcare Experience?"
-          subtitle="Join thousands of patients who trust CTO India for their healthcare needs. Get started today with our comprehensive healthcare services."
+          title="Disability Crisis Accommodation and Specialised Complex Care Support"
+          subtitle="We support Aged Care and NDIS participants that are in crisis, disaster, or change of circumstance with short term accommodation and care. Over 200 modern apartments across Sydney with 24/7 medical and clinical support."
           showServicesButton={true}
           showContactButton={true}
         />
