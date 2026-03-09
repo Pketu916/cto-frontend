@@ -99,9 +99,8 @@ const UserBookingDetails = () => {
       );
       const link = document.createElement("a");
       link.href = url;
-      link.download = `Invoice_${booking?.bookingNumber}${
-        includeSignature ? "_signed" : ""
-      }.pdf`;
+      link.download = `Invoice_${booking?.bookingNumber}${includeSignature ? "_signed" : ""
+        }.pdf`;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -238,6 +237,19 @@ const UserBookingDetails = () => {
                 <Download className="h-4 w-4 mr-2" />
                 Download Invoice
               </Button>
+              {(booking.status === "provider-on-way" ||
+                booking.status === "in-progress" ||
+                booking.status === "work-started") && (
+                  <Button
+                    onClick={() => navigate(`/tracking/${bookingId}`)}
+                    variant="primary"
+                    size="sm"
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Navigation className="h-4 w-4 mr-2 text-white" />
+                    <span className="text-white">Track Location</span>
+                  </Button>
+                )}
               {booking.status === "completed" &&
                 booking.eSignature?.signature && (
                   <Button
@@ -273,10 +285,10 @@ const UserBookingDetails = () => {
                   ? "on_the_way"
                   : booking.status === "in-progress" ||
                     booking.status === "work-started"
-                  ? "on_the_way"
-                  : booking.status === "completed"
-                  ? "completed"
-                  : "pending"
+                    ? "on_the_way"
+                    : booking.status === "completed"
+                      ? "completed"
+                      : "pending"
               }
               stages={[
                 { key: "pending", label: "Pending" },
@@ -395,7 +407,7 @@ const UserBookingDetails = () => {
                     </td>
                     <td className="border border-gray-300 px-4 py-2 text-xs text-right font-semibold">
                       {booking.totalAmount !== null &&
-                      booking.totalAmount !== undefined
+                        booking.totalAmount !== undefined
                         ? formatAUD(booking.totalAmount)
                         : "N/A"}
                     </td>
@@ -407,45 +419,45 @@ const UserBookingDetails = () => {
                 booking.symptoms ||
                 booking.notes ||
                 booking.providerNotes) && (
-                <div className="mt-4 pt-4 border-t border-gray-300">
-                  <h4 className="text-sm font-semibold text-gray-900 mb-3">
-                    Additional Information
-                  </h4>
-                  <div className="space-y-2 text-sm">
-                    {(booking.serviceRequirements || booking.symptoms) && (
-                      <div>
-                        <p className="text-gray-600 font-medium">
-                          Service Requirements:
-                        </p>
-                        <p className="text-gray-900">
-                          {booking.serviceRequirements || booking.symptoms}
-                        </p>
-                      </div>
-                    )}
-                    {booking.notes && (
-                      <div>
-                        <p className="text-gray-600 font-medium">Notes:</p>
-                        <p className="text-gray-900">{booking.notes}</p>
-                      </div>
-                    )}
-                    {booking.providerNotes && (
-                      <div>
-                        <p className="text-gray-600 font-medium">
-                          Provider Notes:
-                        </p>
-                        <p className="text-gray-900 bg-blue-50 p-2 rounded">
-                          {booking.providerNotes}
-                        </p>
-                      </div>
-                    )}
+                  <div className="mt-4 pt-4 border-t border-gray-300">
+                    <h4 className="text-sm font-semibold text-gray-900 mb-3">
+                      Additional Information
+                    </h4>
+                    <div className="space-y-2 text-sm">
+                      {(booking.serviceRequirements || booking.symptoms) && (
+                        <div>
+                          <p className="text-gray-600 font-medium">
+                            Service Requirements:
+                          </p>
+                          <p className="text-gray-900">
+                            {booking.serviceRequirements || booking.symptoms}
+                          </p>
+                        </div>
+                      )}
+                      {booking.notes && (
+                        <div>
+                          <p className="text-gray-600 font-medium">Notes:</p>
+                          <p className="text-gray-900">{booking.notes}</p>
+                        </div>
+                      )}
+                      {booking.providerNotes && (
+                        <div>
+                          <p className="text-gray-600 font-medium">
+                            Provider Notes:
+                          </p>
+                          <p className="text-gray-900 bg-blue-50 p-2 rounded">
+                            {booking.providerNotes}
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
               <div className="mt-4 text-right">
                 <p className="text-sm font-semibold text-gray-900">
                   Total Amount:{" "}
                   {booking.totalAmount !== null &&
-                  booking.totalAmount !== undefined
+                    booking.totalAmount !== undefined
                     ? formatAUD(booking.totalAmount)
                     : "Price not available"}
                 </p>

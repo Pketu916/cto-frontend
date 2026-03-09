@@ -134,8 +134,8 @@ const ProviderManagementTab = ({ stats = {}, onStatsUpdate }) => {
       console.error("Error updating provider status:", error);
       showError(
         error.response?.data?.message ||
-          error.message ||
-          "Failed to update provider status"
+        error.message ||
+        "Failed to update provider status"
       );
     }
   };
@@ -373,15 +373,30 @@ const ProviderManagementTab = ({ stats = {}, onStatsUpdate }) => {
                         </div>
                       </div>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleViewDetails(provider)}
-                      className="flex items-center ml-4"
-                    >
-                      <Eye className="w-4 h-4 mr-1" />
-                      View Details
-                    </Button>
+                    <div className="flex flex-col gap-2 ml-4">
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedProvider(provider);
+                          setStatusUpdate({ status: provider.verificationStatus, notes: provider.verificationNotes || "" });
+                          setShowStatusModal(true);
+                        }}
+                        className="flex items-center justify-center w-full"
+                      >
+                        <Shield className="w-4 h-4 mr-1" />
+                        Update Status
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleViewDetails(provider)}
+                        className="flex items-center justify-center w-full"
+                      >
+                        <Eye className="w-4 h-4 mr-1" />
+                        View Details
+                      </Button>
+                    </div>
                   </div>
                 </div>
               );
@@ -498,7 +513,19 @@ const ProviderManagementTab = ({ stats = {}, onStatsUpdate }) => {
               </div>
             )}
 
-            <div className="flex justify-end pt-4 border-t">
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button
+                variant="primary"
+                onClick={() => {
+                  setShowDetailsModal(false);
+                  setStatusUpdate({ status: selectedProvider.verificationStatus, notes: selectedProvider.verificationNotes || "" });
+                  setShowStatusModal(true);
+                }}
+                className="flex items-center"
+              >
+                <Shield className="w-4 h-4 mr-2" />
+                Update Status
+              </Button>
               <Button
                 variant="outline"
                 onClick={() => setShowDetailsModal(false)}
