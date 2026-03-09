@@ -263,294 +263,250 @@ const UserBookingDetails = () => {
           </div>
         </Card>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Content - Left Side */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Status Tracker */}
-            <Card padding="lg">
-              <h3 className="font-semibold text-gray-900 mb-4">
-                Booking Status
-              </h3>
-              <StatusTracker
-                status={
-                  booking.status === "provider-on-way"
-                    ? "on_the_way"
-                    : booking.status === "in-progress" ||
-                      booking.status === "work-started"
-                    ? "on_the_way"
-                    : booking.status === "completed"
-                    ? "completed"
-                    : "pending"
-                }
-                stages={[
-                  { key: "pending", label: "Pending" },
-                  { key: "on_the_way", label: "En Route" },
-                  { key: "completed", label: "Completed" },
-                ]}
-              />
-            </Card>
+        <div className="space-y-6">
+          {/* Status Tracker */}
+          <Card padding="lg">
+            <h3 className="font-semibold text-gray-900 mb-4">Booking Status</h3>
+            <StatusTracker
+              status={
+                booking.status === "provider-on-way"
+                  ? "on_the_way"
+                  : booking.status === "in-progress" ||
+                    booking.status === "work-started"
+                  ? "on_the_way"
+                  : booking.status === "completed"
+                  ? "completed"
+                  : "pending"
+              }
+              stages={[
+                { key: "pending", label: "Pending" },
+                { key: "on_the_way", label: "En Route" },
+                { key: "completed", label: "Completed" },
+              ]}
+            />
+          </Card>
 
-            {/* Provider Location Map - Show when provider is assigned and tracking */}
-            {(booking.status === "provider-on-way" ||
-              booking.status === "provider-started" ||
-              booking.status === "work-started" ||
-              booking.status === "in-progress" ||
-              booking.status === "completed") &&
-              booking.providerLocation?.isTracking && (
-                <Card padding="lg">
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <Navigation className="h-5 w-5 text-primary" />
-                      <h3 className="font-semibold text-gray-900">
-                        Provider Location Tracking
-                      </h3>
-                      <div className="ml-auto flex items-center gap-2">
-                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                        <span className="text-sm text-gray-600">Active</span>
+          {/* Provider Location Map - Show when provider is assigned and tracking */}
+          {(booking.status === "provider-on-way" ||
+            booking.status === "provider-started" ||
+            booking.status === "work-started" ||
+            booking.status === "in-progress" ||
+            booking.status === "completed") &&
+            booking.providerLocation?.isTracking && (
+              <Card padding="lg">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Navigation className="h-5 w-5 text-primary" />
+                    <h3 className="font-semibold text-gray-900">
+                      Provider Location Tracking
+                    </h3>
+                    <div className="ml-auto flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                      <span className="text-sm text-gray-600">Active</span>
+                    </div>
+                  </div>
+                  <div className="rounded-lg overflow-hidden border border-gray-200">
+                    <ProviderLocationMap
+                      providerLocation={booking.providerLocation}
+                      customerAddress={booking.address}
+                      status={booking.status}
+                      bookingId={booking._id}
+                      providerName={
+                        booking.provider?.name || "Service Provider"
+                      }
+                      height="400px"
+                    />
+                  </div>
+                </div>
+              </Card>
+            )}
+
+          {/* Service Information & Additional Information - Merged Table */}
+          <Card padding="lg">
+            <h3 className="font-semibold text-gray-900 mb-4">
+              Service Information & Additional Details
+            </h3>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse border border-gray-300">
+                <thead>
+                  <tr className="bg-blue-600 text-white">
+                    <th className="border border-gray-300 px-4 py-2 text-left text-xs font-semibold">
+                      Support Item #
+                    </th>
+                    <th className="border border-gray-300 px-4 py-2 text-left text-xs font-semibold">
+                      Support Item Name
+                    </th>
+                    <th className="border border-gray-300 px-4 py-2 text-left text-xs font-semibold">
+                      Reg. Group
+                    </th>
+                    <th className="border border-gray-300 px-4 py-2 text-left text-xs font-semibold">
+                      Day & Time
+                    </th>
+                    <th className="border border-gray-300 px-4 py-2 text-left text-xs font-semibold">
+                      Address
+                    </th>
+                    <th className="border border-gray-300 px-4 py-2 text-center text-xs font-semibold">
+                      Hours
+                    </th>
+                    <th className="border border-gray-300 px-4 py-2 text-right text-xs font-semibold">
+                      Pricing
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="bg-white hover:bg-gray-50">
+                    <td className="border border-gray-300 px-4 py-2 text-xs">
+                      {booking.serviceDetails?.supportItemNumber || "N/A"}
+                    </td>
+                    <td className="border border-gray-300 px-4 py-2 text-xs">
+                      {booking.serviceDetails?.serviceName ||
+                        booking.serviceTitle ||
+                        "Service"}
+                    </td>
+                    <td className="border border-gray-300 px-4 py-2 text-xs">
+                      {booking.serviceDetails?.registrationGroup || "N/A"}
+                    </td>
+                    <td className="border border-gray-300 px-4 py-2 text-xs">
+                      <div>
+                        {new Date(booking.scheduledDate).toLocaleDateString(
+                          "en-AU",
+                          {
+                            weekday: "long",
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          }
+                        )}
                       </div>
-                    </div>
-                    <div className="rounded-lg overflow-hidden border border-gray-200">
-                      <ProviderLocationMap
-                        providerLocation={booking.providerLocation}
-                        customerAddress={booking.address}
-                        status={booking.status}
-                        bookingId={booking._id}
-                        providerName={
-                          booking.provider?.name || "Service Provider"
-                        }
-                        height="400px"
-                      />
-                    </div>
+                      <div className="text-gray-600">
+                        {booking.scheduledTime}
+                      </div>
+                    </td>
+                    <td className="border border-gray-300 px-4 py-2 text-xs">
+                      {booking.address
+                        ? `${booking.address.street}, ${booking.address.city}, ${booking.address.state} ${booking.address.pincode}`
+                        : "N/A"}
+                    </td>
+                    <td className="border border-gray-300 px-4 py-2 text-xs text-center">
+                      {booking.serviceHours ||
+                        (booking.bookingType === "dateRange"
+                          ? "Multiple"
+                          : "N/A")}
+                    </td>
+                    <td className="border border-gray-300 px-4 py-2 text-xs text-right font-semibold">
+                      {booking.totalAmount !== null &&
+                      booking.totalAmount !== undefined
+                        ? formatAUD(booking.totalAmount)
+                        : "N/A"}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              {/* Additional Information below the table */}
+              {(booking.serviceRequirements ||
+                booking.symptoms ||
+                booking.notes ||
+                booking.providerNotes) && (
+                <div className="mt-4 pt-4 border-t border-gray-300">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-3">
+                    Additional Information
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    {(booking.serviceRequirements || booking.symptoms) && (
+                      <div>
+                        <p className="text-gray-600 font-medium">
+                          Service Requirements:
+                        </p>
+                        <p className="text-gray-900">
+                          {booking.serviceRequirements || booking.symptoms}
+                        </p>
+                      </div>
+                    )}
+                    {booking.notes && (
+                      <div>
+                        <p className="text-gray-600 font-medium">Notes:</p>
+                        <p className="text-gray-900">{booking.notes}</p>
+                      </div>
+                    )}
+                    {booking.providerNotes && (
+                      <div>
+                        <p className="text-gray-600 font-medium">
+                          Provider Notes:
+                        </p>
+                        <p className="text-gray-900 bg-blue-50 p-2 rounded">
+                          {booking.providerNotes}
+                        </p>
+                      </div>
+                    )}
                   </div>
-                </Card>
+                </div>
               )}
-          </div>
-
-          {/* Sidebar - Right Side */}
-          <div className="space-y-6">
-            {/* Service Information */}
-            <Card padding="lg">
-              <h3 className="font-semibold text-gray-900 mb-4">
-                Service Information
-              </h3>
-              <div className="space-y-3 text-sm">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-gray-400" />
-                  <div>
-                    <p className="text-gray-600">Date</p>
-                    <p className="font-medium text-gray-900">
-                      {new Date(booking.scheduledDate).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-gray-400" />
-                  <div>
-                    <p className="text-gray-600">Time</p>
-                    <p className="font-medium text-gray-900">
-                      {booking.scheduledTime}
-                    </p>
-                  </div>
-                </div>
-                {booking.address && (
-                  <div className="flex items-start gap-2">
-                    <MapPin className="h-4 w-4 text-gray-400 mt-0.5" />
-                    <div>
-                      <p className="text-gray-600">Address</p>
-                      <p className="font-medium text-gray-900">
-                        {booking.address.street}, {booking.address.city},{" "}
-                        {booking.address.state} {booking.address.pincode}
-                      </p>
-                    </div>
-                  </div>
-                )}
-                <div>
-                  <p className="text-gray-600">Total Amount</p>
-                  <p className="font-semibold text-lg text-green-600">
-                    {booking.totalAmount !== null &&
-                    booking.totalAmount !== undefined
-                      ? formatAUD(booking.totalAmount)
-                      : "Price not available"}
-                  </p>
-                </div>
+              <div className="mt-4 text-right">
+                <p className="text-sm font-semibold text-gray-900">
+                  Total Amount:{" "}
+                  {booking.totalAmount !== null &&
+                  booking.totalAmount !== undefined
+                    ? formatAUD(booking.totalAmount)
+                    : "Price not available"}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  All prices in Australian Dollars (AUD)
+                </p>
               </div>
-            </Card>
+            </div>
+          </Card>
 
-            {/* Invoice Table */}
-            <Card padding="lg">
-              <h3 className="font-semibold text-gray-900 mb-4">
-                Invoice Details
-              </h3>
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse border border-gray-300">
-                  <thead>
-                    <tr className="bg-blue-600 text-white">
-                      <th className="border border-gray-300 px-4 py-2 text-left text-xs font-semibold">
-                        Support Item #
-                      </th>
-                      <th className="border border-gray-300 px-4 py-2 text-left text-xs font-semibold">
-                        Support Item Name
-                      </th>
-                      <th className="border border-gray-300 px-4 py-2 text-left text-xs font-semibold">
-                        Reg. Group
-                      </th>
-                      <th className="border border-gray-300 px-4 py-2 text-left text-xs font-semibold">
-                        Day & Time
-                      </th>
-                      <th className="border border-gray-300 px-4 py-2 text-center text-xs font-semibold">
-                        Hours
-                      </th>
-                      <th className="border border-gray-300 px-4 py-2 text-right text-xs font-semibold">
-                        Pricing
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="bg-white hover:bg-gray-50">
-                      <td className="border border-gray-300 px-4 py-2 text-xs">
-                        {booking.serviceDetails?.supportItemNumber || "N/A"}
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2 text-xs">
-                        {booking.serviceDetails?.serviceName ||
-                          booking.serviceTitle ||
-                          "Service"}
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2 text-xs">
-                        {booking.serviceDetails?.registrationGroup || "N/A"}
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2 text-xs">
-                        <div>
-                          {new Date(booking.scheduledDate).toLocaleDateString(
-                            "en-AU",
-                            {
-                              weekday: "long",
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                            }
-                          )}
-                        </div>
-                        <div className="text-gray-600">
-                          {booking.scheduledTime}
-                        </div>
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2 text-xs text-center">
-                        {booking.serviceHours ||
-                          (booking.bookingType === "dateRange"
-                            ? "Multiple"
-                            : "N/A")}
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2 text-xs text-right font-semibold">
-                        {booking.totalAmount !== null &&
-                        booking.totalAmount !== undefined
-                          ? formatAUD(booking.totalAmount)
-                          : "N/A"}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-                <div className="mt-4 text-right">
-                  <p className="text-sm font-semibold text-gray-900">
-                    Total Amount:{" "}
-                    {booking.totalAmount !== null &&
-                    booking.totalAmount !== undefined
-                      ? formatAUD(booking.totalAmount)
-                      : "Price not available"}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    All prices in Australian Dollars (AUD)
-                  </p>
-                </div>
-              </div>
-            </Card>
-
-            {/* Customer Information */}
-            <Card padding="lg">
-              <h3 className="font-semibold text-gray-900 mb-4">
-                Customer Information
-              </h3>
-              <div className="space-y-3 text-sm">
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-gray-400" />
-                  <div>
-                    <p className="text-gray-600">Name</p>
-                    <p className="font-medium text-gray-900">
+          {/* Customer Information - Second Row */}
+          <Card padding="lg">
+            <h3 className="font-semibold text-gray-900 mb-4">
+              Customer Information
+            </h3>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse border border-gray-300">
+                <thead>
+                  <tr className="bg-blue-600 text-white">
+                    <th className="border border-gray-300 px-4 py-2 text-left text-xs font-semibold">
+                      Name
+                    </th>
+                    <th className="border border-gray-300 px-4 py-2 text-left text-xs font-semibold">
+                      Age
+                    </th>
+                    <th className="border border-gray-300 px-4 py-2 text-left text-xs font-semibold">
+                      Phone
+                    </th>
+                    <th className="border border-gray-300 px-4 py-2 text-left text-xs font-semibold">
+                      Emergency Contact
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="bg-white hover:bg-gray-50">
+                    <td className="border border-gray-300 px-4 py-2 text-xs">
                       {booking.customerInfo?.name ||
                         booking.patientInfo?.name ||
-                        user?.name}
-                    </p>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-gray-600">Age</p>
-                  <p className="font-medium text-gray-900">
-                    {booking.customerInfo?.age || booking.patientInfo?.age}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-gray-400" />
-                  <div>
-                    <p className="text-gray-600">Phone</p>
-                    <p className="font-medium text-gray-900">
+                        user?.name ||
+                        "N/A"}
+                    </td>
+                    <td className="border border-gray-300 px-4 py-2 text-xs">
+                      {booking.customerInfo?.age ||
+                        booking.patientInfo?.age ||
+                        "N/A"}
+                    </td>
+                    <td className="border border-gray-300 px-4 py-2 text-xs">
                       {booking.customerInfo?.phone ||
-                        booking.patientInfo?.phone}
-                    </p>
-                  </div>
-                </div>
-                {(booking.customerInfo?.emergencyContact ||
-                  booking.patientInfo?.emergencyContact) && (
-                  <div>
-                    <p className="text-gray-600">Emergency Contact</p>
-                    <p className="font-medium text-gray-900">
+                        booking.patientInfo?.phone ||
+                        "N/A"}
+                    </td>
+                    <td className="border border-gray-300 px-4 py-2 text-xs">
                       {booking.customerInfo?.emergencyContact ||
-                        booking.patientInfo?.emergencyContact}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </Card>
-
-            {/* Additional Information */}
-            {(booking.serviceRequirements ||
-              booking.symptoms ||
-              booking.notes) && (
-              <Card padding="lg">
-                <h3 className="font-semibold text-gray-900 mb-4">
-                  Additional Information
-                </h3>
-                <div className="space-y-3 text-sm">
-                  {(booking.serviceRequirements || booking.symptoms) && (
-                    <div>
-                      <p className="text-gray-600 font-medium">
-                        Service Requirements
-                      </p>
-                      <p className="text-gray-900">
-                        {booking.serviceRequirements || booking.symptoms}
-                      </p>
-                    </div>
-                  )}
-                  {booking.notes && (
-                    <div>
-                      <p className="text-gray-600 font-medium">Notes</p>
-                      <p className="text-gray-900">{booking.notes}</p>
-                    </div>
-                  )}
-                </div>
-              </Card>
-            )}
-
-            {/* Provider Notes */}
-            {booking.providerNotes && (
-              <Card padding="lg">
-                <h3 className="font-semibold text-gray-900 mb-4">
-                  Provider Notes
-                </h3>
-                <p className="text-sm text-gray-700 bg-blue-50 p-3 rounded">
-                  {booking.providerNotes}
-                </p>
-              </Card>
-            )}
-          </div>
+                        booking.patientInfo?.emergencyContact ||
+                        "N/A"}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </Card>
         </div>
       </div>
     </div>

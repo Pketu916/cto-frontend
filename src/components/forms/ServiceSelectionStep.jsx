@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { FileText, Filter, Loader2, CheckCircle, Plus, X } from "lucide-react";
+import { FileText, Loader2, CheckCircle } from "lucide-react";
 import Select from "../ui/Select";
-import Button from "../ui/Button";
 import { servicesAPI } from "../../services/api";
 import { useToast } from "../../contexts/ToastContext";
 
@@ -11,24 +10,19 @@ const ServiceSelectionStep = ({
   service,
   setValue,
   watch,
-  selectedServices = [],
-  onServicesChange,
   touchedFields = {},
   isSubmitted = false,
 }) => {
-  // Helper to check if error should be shown
+  // Helper to check if error should be shown - show on change/input
   const shouldShowError = (fieldName) => {
-    return (touchedFields[fieldName] || isSubmitted) && errors[fieldName];
+    // Show error if field has been touched, submitted, or has an error (onChange mode)
+    return errors[fieldName];
   };
-  const { showError, showSuccess } = useToast();
+  const { showError } = useToast();
   const [uniqueServiceIds, setUniqueServiceIds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedServiceDetails, setSelectedServiceDetails] = useState(null);
-  const [multipleServices, setMultipleServices] = useState(
-    selectedServices || []
-  );
 
-  const selectedCategory = watch("selectedCategory");
   const selectedServiceId = watch("selectedServiceId");
 
   // Load unique Service IDs on component mount
@@ -110,38 +104,6 @@ const ServiceSelectionStep = ({
     loadUniqueServiceIds();
   }, [showError]);
 
-  // Get all unique categories for dropdown
-  const allCategories = useMemo(() => {
-    const categorySet = new Set();
-    uniqueServiceIds.forEach((s) => {
-      if (s && s.category) {
-        categorySet.add(s.category);
-      }
-    });
-    return [
-      { value: "all", label: "All Categories" },
-      ...Array.from(categorySet).map((cat) => ({ value: cat, label: cat })),
-    ];
-  }, [uniqueServiceIds]);
-
-  // Filter unique Service IDs by selected category
-  const filteredServiceIdOptions = useMemo(() => {
-    let filtered = uniqueServiceIds;
-    if (selectedCategory && selectedCategory !== "all") {
-      filtered = uniqueServiceIds.filter(
-        (s) => s && s.category === selectedCategory
-      );
-    }
-    return filtered
-      .filter((service) => service && service.serviceId)
-      .map((service) => ({
-        value: String(service.serviceId),
-        label: `${service.serviceId} - ${service.name || "Service"}`,
-        category: service.category,
-        service: service,
-      }));
-  }, [selectedCategory, uniqueServiceIds]);
-
   // Get all Service ID options for the dropdown
   const allServiceIdOptions = useMemo(() => {
     const options = uniqueServiceIds
@@ -160,14 +122,6 @@ const ServiceSelectionStep = ({
 
     return options;
   }, [uniqueServiceIds]);
-
-  // Reset service selection when category changes
-  useEffect(() => {
-    if (selectedCategory && setValue) {
-      setValue("selectedServiceId", "");
-      setSelectedServiceDetails(null);
-    }
-  }, [selectedCategory, setValue]);
 
   // When Service ID is selected, show basic info
   useEffect(() => {
@@ -201,20 +155,17 @@ const ServiceSelectionStep = ({
     }
   }, [selectedServiceId, uniqueServiceIds, setValue]);
 
-  // If a service is pre-selected, initialize the category and service dropdown
+  // If a service is pre-selected, initialize the service dropdown
   useEffect(() => {
     if (
       service &&
       service.serviceId &&
-      service.category &&
       setValue &&
-      !selectedCategory &&
       uniqueServiceIds.length > 0
     ) {
-      setValue("selectedCategory", service.category);
       setValue("selectedServiceId", service.serviceId);
     }
-  }, [service, uniqueServiceIds, selectedCategory, setValue]);
+  }, [service, uniqueServiceIds, setValue]);
 
   return (
     <div className="space-y-6">
@@ -243,40 +194,15 @@ const ServiceSelectionStep = ({
           </div>
         ) : (
           <>
-            {/* Category Selection */}
-            <div className="mb-4">
-              <Select
-                label="Service Category (Optional)"
-                name="selectedCategory"
-                options={allCategories}
-                placeholder="Select 'All Categories' or choose a specific category"
-                error={errors.selectedCategory?.message}
-                {...register("selectedCategory")}
-              />
-              {allCategories.length > 0 && (
-                <p className="text-xs text-gray-500 mt-1">
-                  {allCategories.length - 1} categories available
-                </p>
-              )}
-            </div>
-
             {/* Service ID Selection */}
             <div className="mb-4">
               <Select
                 label="Select Service ID"
                 name="selectedServiceId"
                 required
-                options={
-                  selectedCategory && selectedCategory !== "all"
-                    ? filteredServiceIdOptions
-                    : allServiceIdOptions
-                }
+                options={allServiceIdOptions}
                 placeholder={
-                  selectedCategory && selectedCategory !== "all"
-                    ? filteredServiceIdOptions.length === 0
-                      ? "No services available in this category"
-                      : `Choose a Service ID from ${selectedCategory} (${filteredServiceIdOptions.length} available)`
-                    : allServiceIdOptions.length > 0
+                  allServiceIdOptions.length > 0
                     ? `Choose a Service ID (${allServiceIdOptions.length} services available)`
                     : "No services available"
                 }
@@ -285,132 +211,12 @@ const ServiceSelectionStep = ({
                     ? errors.selectedServiceId?.message
                     : undefined
                 }
-                disabled={
-                  loading ||
-                  allServiceIdOptions.length === 0 ||
-                  (selectedCategory &&
-                    selectedCategory !== "all" &&
-                    filteredServiceIdOptions.length === 0)
-                }
+                disabled={loading || allServiceIdOptions.length === 0}
                 {...register("selectedServiceId", {
                   required: "Please select a Service ID",
                 })}
               />
-              {allServiceIdOptions.length > 0 && (
-                <p className="text-xs text-gray-500 mt-2">
-                  {allServiceIdOptions.length} unique service(s) available.
-                  After selecting Service ID, proceed to select date and time to
-                  see exact price and Support Item Number.
-                </p>
-              )}
-              {allServiceIdOptions.length === 0 && !loading && (
-                <p className="text-xs text-red-500 mt-2">
-                  No services available. Please check your connection or contact
-                  support.
-                </p>
-              )}
             </div>
-
-            {/* Multiple Services Selection */}
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Add Multiple Services (Optional)
-                </label>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    const currentServiceId = watch("selectedServiceId");
-                    if (
-                      currentServiceId &&
-                      !multipleServices.find(
-                        (s) => s.serviceId === currentServiceId
-                      )
-                    ) {
-                      const service = uniqueServiceIds.find(
-                        (s) => String(s.serviceId) === String(currentServiceId)
-                      );
-                      if (service) {
-                        const newService = {
-                          serviceId: service.serviceId,
-                          name: service.name,
-                          category: service.category,
-                        };
-                        const updated = [...multipleServices, newService];
-                        setMultipleServices(updated);
-                        if (onServicesChange) {
-                          onServicesChange(updated);
-                        }
-                        showSuccess("Service added to list");
-                      }
-                    }
-                  }}
-                  disabled={
-                    !selectedServiceId ||
-                    multipleServices.find(
-                      (s) => s.serviceId === watch("selectedServiceId")
-                    )
-                  }
-                >
-                  <Plus className="w-4 h-4 mr-1" />
-                  Add Service
-                </Button>
-              </div>
-
-              {multipleServices.length > 0 && (
-                <div className="space-y-2 mt-2">
-                  {multipleServices.map((svc, index) => (
-                    <div
-                      key={`${svc.serviceId}-${index}`}
-                      className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg"
-                    >
-                      <div>
-                        <span className="text-sm font-medium text-gray-900">
-                          {svc.serviceId} - {svc.name}
-                        </span>
-                        {svc.category && (
-                          <span className="ml-2 text-xs text-gray-600">
-                            ({svc.category})
-                          </span>
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const updated = multipleServices.filter(
-                            (_, i) => i !== index
-                          );
-                          setMultipleServices(updated);
-                          if (onServicesChange) {
-                            onServicesChange(updated);
-                          }
-                        }}
-                        className="text-red-600 hover:text-red-800"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                  <p className="text-xs text-gray-500 mt-2">
-                    {multipleServices.length} service(s) added. You can add more
-                    services or remove them.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {selectedCategory &&
-              selectedCategory !== "all" &&
-              filteredServiceIdOptions.length === 0 && (
-                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <p className="text-sm text-yellow-800">
-                    No services available in this category. Please select "All
-                    Categories" or choose a different category.
-                  </p>
-                </div>
-              )}
           </>
         )}
       </div>

@@ -40,7 +40,6 @@ const ServiceBookingForm = ({
   const [isCalculatingPrice, setIsCalculatingPrice] = useState(false);
   const [exactService, setExactService] = useState(null);
   const [blockedSlots, setBlockedSlots] = useState([]);
-  const [selectedServices, setSelectedServices] = useState([]); // Multiple services
   // New state for booking type and date range
   const [bookingType, setBookingType] = useState("oneTime"); // "oneTime" or "dateRange"
   const [serviceHours, setServiceHours] = useState(null);
@@ -61,8 +60,8 @@ const ServiceBookingForm = ({
     trigger,
   } = useForm({
     resolver: yupResolver(bookingFormSchema),
-    mode: "onBlur", // Only validate on blur (when user leaves field)
-    reValidateMode: "onBlur", // Re-validate on blur
+    mode: "onChange", // Validate on change (when user types)
+    reValidateMode: "onChange", // Re-validate on change
     criteriaMode: "firstError",
     shouldFocusError: true,
   });
@@ -132,9 +131,8 @@ const ServiceBookingForm = ({
             const address = booking.address;
 
             if (address && (address.city || address.state)) {
-              const addressKey = `${address.street || ""}_${
-                address.city || ""
-              }_${address.state || ""}_${address.pincode || ""}`.trim();
+              const addressKey = `${address.street || ""}_${address.city || ""
+                }_${address.state || ""}_${address.pincode || ""}`.trim();
 
               if (!addressMap.has(addressKey)) {
                 addressMap.set(addressKey, {
@@ -350,8 +348,8 @@ const ServiceBookingForm = ({
         return;
       }
 
-      if (!serviceHours || parseFloat(serviceHours) <= 0) {
-        showError("Please enter service hours per day");
+      if (!serviceHours || parseFloat(serviceHours) < 2) {
+        showError("Service hours per day must be at least 2 hours");
         return;
       }
     }
@@ -414,13 +412,41 @@ const ServiceBookingForm = ({
       setCalculatedPrice(null);
       setCalculatedRangePrice(null);
 
+      let errorMessage = "Failed to calculate pricing. Please try again.";
+
       if (error.response?.status === 429) {
-        showError("Too many requests. Please wait a moment and try again.");
-      } else {
-        showError("Failed to calculate pricing. Please try again.");
+        errorMessage = "Too many requests. Please wait a moment and try again.";
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.message) {
+        errorMessage = error.message;
       }
+
+      console.error("Pricing calculation error details:", {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message,
+      });
+
+      showError(errorMessage);
     } finally {
       setIsCalculatingPrice(false);
+    }
+  };
+
+  const onFormError = (formErrors) => {
+    const fieldsWithErrors = Object.keys(formErrors);
+    if (fieldsWithErrors.length > 0) {
+      if (getStepFields(1).some((f) => fieldsWithErrors.includes(f))) {
+        setStep(1);
+      } else if (getStepFields(2).some((f) => fieldsWithErrors.includes(f))) {
+        setStep(2);
+      } else if (getStepFields(4).some((f) => fieldsWithErrors.includes(f))) {
+        setStep(4);
+      }
+      showError("Please fix errors before submitting.");
     }
   };
 
@@ -428,58 +454,6 @@ const ServiceBookingForm = ({
     if (!user) {
       showError("Please login to book a service");
       return;
-    }
-
-    // Validate all steps before submitting
-    const allStepFields = [
-      ...getStepFields(1),
-      ...getStepFields(2),
-      ...getStepFields(4),
-    ];
-
-    // Trigger validation for all form fields
-    const isFormValid = await trigger(allStepFields);
-
-    // Check each step validity
-    const step1Valid = isStepValid(1);
-    const step2Valid = isStepValid(2);
-    const step3Valid = isStepValid(3);
-    const step4Valid = isStepValid(4);
-
-    if (!step1Valid) {
-      setStep(1);
-      showError(
-        "Please complete step 1 (Service Selection) before submitting."
-      );
-      return;
-    }
-
-    if (!step2Valid) {
-      setStep(2);
-      showError(
-        "Please complete step 2 (Customer Information) before submitting."
-      );
-      return;
-    }
-
-    if (!step3Valid) {
-      setStep(3);
-      showError("Please complete step 3 (Date & Time) before submitting.");
-      return;
-    }
-
-    if (!step4Valid) {
-      setStep(4);
-      showError("Please complete step 4 (Payment) before submitting.");
-      return;
-    }
-
-    if (!isFormValid) {
-      const fieldsWithErrors = allStepFields.filter((field) => errors[field]);
-      if (fieldsWithErrors.length > 0) {
-        showError(`Please fix errors in: ${fieldsWithErrors.join(", ")}`);
-        return;
-      }
     }
 
     // Validate step 3 based on booking type
@@ -503,6 +477,12 @@ const ServiceBookingForm = ({
         );
         return;
       }
+    }
+
+    if (useInsurance && !insuranceVerified) {
+      setStep(4);
+      showError("Please verify your insurance before submitting.");
+      return;
     }
 
     const finalServiceId = data.selectedServiceId;
@@ -558,37 +538,37 @@ const ServiceBookingForm = ({
         useInsurance: data.useInsurance || false,
         insuranceInfo: data.useInsurance
           ? {
-              provider: data.insuranceProvider,
-              policyNumber: data.insurancePolicyNumber,
-              memberId: data.insuranceMemberId,
-              groupNumber: data.insuranceGroupNumber,
-              verified: insuranceVerified,
-            }
+            provider: data.insuranceProvider,
+            policyNumber: data.insurancePolicyNumber,
+            memberId: data.insuranceMemberId,
+            groupNumber: data.insuranceGroupNumber,
+            verified: insuranceVerified,
+          }
           : null,
         serviceDetails: exactService
           ? {
-              serviceId: exactService.serviceId || finalServiceId,
-              serviceName:
-                exactService.supportItemName ||
-                service?.name ||
-                service?.title ||
-                null,
-              supportItemNumber: exactService.supportItemNumber || null,
-              price: finalPrice,
-              priceType: exactService.priceType || null,
-              condition:
-                exactService.determinedCondition ||
-                exactService.condition ||
-                null,
-              unit: exactService.unit || null,
-              quote: exactService.quote || null,
-              registrationGroup: exactService.registrationGroup || null,
-              category:
-                exactService.category ||
-                service?.category ||
-                data.selectedCategory ||
-                null,
-            }
+            serviceId: exactService.serviceId || finalServiceId,
+            serviceName:
+              exactService.supportItemName ||
+              service?.name ||
+              service?.title ||
+              null,
+            supportItemNumber: exactService.supportItemNumber || null,
+            price: finalPrice,
+            priceType: exactService.priceType || null,
+            condition:
+              exactService.determinedCondition ||
+              exactService.condition ||
+              null,
+            unit: exactService.unit || null,
+            quote: exactService.quote || null,
+            registrationGroup: exactService.registrationGroup || null,
+            category:
+              exactService.category ||
+              service?.category ||
+              data.selectedCategory ||
+              null,
+          }
           : null,
       };
 
@@ -614,8 +594,8 @@ const ServiceBookingForm = ({
             userType === "provider"
               ? "/provider/dashboard"
               : userType === "admin"
-              ? "/admin/dashboard"
-              : "/user/dashboard";
+                ? "/admin/dashboard"
+                : "/user/dashboard";
           navigate(dashboardPath);
         } else {
           // Normal booking created
@@ -646,8 +626,8 @@ const ServiceBookingForm = ({
             userType === "provider"
               ? "/provider/dashboard"
               : userType === "admin"
-              ? "/admin/dashboard"
-              : "/user/dashboard";
+                ? "/admin/dashboard"
+                : "/user/dashboard";
           navigate(dashboardPath);
         }
       } else {
@@ -815,7 +795,7 @@ const ServiceBookingForm = ({
           selectedDate &&
           selectedTime &&
           serviceHours &&
-          parseFloat(serviceHours) > 0
+          parseFloat(serviceHours) >= 2
         );
       } else if (bookingType === "dateRange") {
         return (
@@ -824,10 +804,40 @@ const ServiceBookingForm = ({
           selectedDays.length > 0 &&
           selectedTime &&
           serviceHours &&
-          parseFloat(serviceHours) > 0
+          parseFloat(serviceHours) >= 2
         );
       }
       return false;
+    }
+
+    if (stepNumber === 4) {
+      // Step 4 validation: payment method is required
+      const hasPaymentMethod = !!formData.paymentMethod;
+
+      // If insurance is used, validate insurance fields
+      if (useInsurance) {
+        const insuranceFields = [
+          "insuranceProvider",
+          "insurancePolicyNumber",
+          "insuranceMemberId",
+        ];
+        const allInsuranceFieldsFilled = insuranceFields.every((field) => {
+          const value = formData[field];
+          return (
+            value !== undefined && value !== null && String(value).trim() !== ""
+          );
+        });
+        const hasNoInsuranceErrors = insuranceFields.every(
+          (field) => !errors[field]
+        );
+        return (
+          hasPaymentMethod && allInsuranceFieldsFilled && hasNoInsuranceErrors
+        );
+      }
+
+      // Check for payment method errors
+      const hasNoPaymentErrors = !errors.paymentMethod;
+      return hasPaymentMethod && hasNoPaymentErrors;
     }
 
     if (stepNumber === 4) {
@@ -935,7 +945,7 @@ const ServiceBookingForm = ({
         onCancel={handleBack}
       />
 
-      <form onSubmit={handleSubmit(handleFormSubmit)}>
+      <form onSubmit={handleSubmit(handleFormSubmit, onFormError)}>
         <div className="p-4">
           {/* Step 1: Service Selection */}
           {step === 1 && (
@@ -945,8 +955,6 @@ const ServiceBookingForm = ({
               service={service}
               setValue={setValue}
               watch={watch}
-              selectedServices={selectedServices}
-              onServicesChange={setSelectedServices}
             />
           )}
 
@@ -1014,12 +1022,11 @@ const ServiceBookingForm = ({
                 <textarea
                   {...register("serviceRequirements")}
                   rows={4}
-                  className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    (touchedFields.serviceRequirements || isSubmitted) &&
-                    errors.serviceRequirements
+                  className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${(touchedFields.serviceRequirements || isSubmitted) &&
+                      errors.serviceRequirements
                       ? "border-red-500 focus:ring-red-500 focus:border-red-500"
                       : "border-gray-300"
-                  }`}
+                    }`}
                   placeholder="Describe the service requirements or details needed"
                 />
                 {(touchedFields.serviceRequirements || isSubmitted) &&

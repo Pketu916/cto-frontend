@@ -34,7 +34,7 @@ const ScheduleStep = ({
   calculatedRangePrice = null,
 }) => {
   const [hour, setHour] = useState("");
-  const [minute, setMinute] = useState("");
+  const [minute, setMinute] = useState("00"); // Default to "00"
   const [localServiceHours, setLocalServiceHours] = useState(
     serviceHours || ""
   );
@@ -62,10 +62,10 @@ const ScheduleStep = ({
       if (selectedTime) {
         const [h, m] = selectedTime.split(":");
         setHour(h || "");
-        setMinute(m || "");
+        setMinute(m || "00");
       } else {
         setHour("");
-        setMinute("");
+        setMinute("00"); // Default to "00"
       }
       prevSelectedTimeRef.current = selectedTime;
     }
@@ -159,8 +159,12 @@ const ScheduleStep = ({
       return;
     }
     const numValue = parseFloat(value);
-    if (!isNaN(numValue) && numValue > 0) {
+    // Minimum 2 hours
+    if (!isNaN(numValue) && numValue >= 2) {
       setLocalServiceHours(value);
+    } else if (!isNaN(numValue) && numValue < 2) {
+      // Show error or set to minimum
+      setLocalServiceHours("2");
     }
   };
 
@@ -291,7 +295,9 @@ const ScheduleStep = ({
                             val &&
                             (parseInt(val) < 0 || parseInt(val) > 59)
                           ) {
-                            setMinute("");
+                            setMinute("00");
+                          } else if (!val || val === "") {
+                            setMinute("00");
                           }
                         }}
                         placeholder="00"
@@ -324,8 +330,8 @@ const ScheduleStep = ({
                     type="number"
                     value={localServiceHours}
                     onChange={handleServiceHoursChange}
-                    placeholder="Enter service hours (e.g., 2.5)"
-                    min="0.5"
+                    placeholder="Enter service hours (minimum 2)"
+                    min="2"
                     step="0.5"
                     className="w-full pl-3 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
@@ -455,7 +461,9 @@ const ScheduleStep = ({
                             val &&
                             (parseInt(val) < 0 || parseInt(val) > 59)
                           ) {
-                            setMinute("");
+                            setMinute("00");
+                          } else if (!val || val === "") {
+                            setMinute("00");
                           }
                         }}
                         placeholder="00"
@@ -492,8 +500,8 @@ const ScheduleStep = ({
                       type="number"
                       value={localServiceHours}
                       onChange={handleServiceHoursChange}
-                      placeholder="Enter service hours per day (e.g., 2.5)"
-                      min="0.5"
+                      placeholder="Enter service hours per day (minimum 2)"
+                      min="2"
                       step="0.5"
                       className="w-full pl-3 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />

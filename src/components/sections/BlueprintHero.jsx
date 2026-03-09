@@ -15,9 +15,9 @@ const BlueprintHero = () => {
           {/* Right side - Content */}
           <div className="flex-1 max-w-2xl">
             <h2 className="text-2xl md:text-4xl font-bold relative inline-block mb-6">
-              Unlock the blueprint for your
+              Your Trusted Partner for
               <span className="relative inline-block">
-                &nbsp;Success
+                &nbsp;Quality Care
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="absolute left-0 -bottom-2 w-full"
@@ -36,10 +36,11 @@ const BlueprintHero = () => {
             </h2>
 
             <p className="text-lg text-gray-700 mb-8 leading-relaxed">
-              Whether you're seeking primary care or specialized medical
-              services, CTO India provides comprehensive healthcare solutions,
-              expert medical professionals, and cutting-edge technology for
-              patients at every stage of life.
+              CTO India delivers comprehensive NDIS and My Aged Care support
+              services with 24/7 availability. From clinical nursing care and
+              allied health support to emergency response coordination, we
+              provide personalized, professional care solutions tailored to your
+              unique needs and goals.
             </p>
 
             <Button
@@ -47,7 +48,7 @@ const BlueprintHero = () => {
               size="md"
               className="bg-primary text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-primary/90 transition-colors duration-300"
             >
-              Explore CTO India Services
+              Browse Our Services
             </Button>
           </div>
         </div>

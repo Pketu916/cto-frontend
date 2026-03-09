@@ -17,9 +17,10 @@ const CustomerInformationStep = ({
   gpsLocation,
   setValue,
 }) => {
-  // Helper to check if error should be shown
+  // Helper to check if error should be shown - show on change/input
   const shouldShowError = (fieldName) => {
-    return (touchedFields[fieldName] || isSubmitted) && errors[fieldName];
+    // Show error if field has been touched, submitted, or has an error (onChange mode)
+    return errors[fieldName];
   };
   return (
     <div className="space-y-4">

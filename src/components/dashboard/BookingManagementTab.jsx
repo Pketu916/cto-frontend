@@ -5,11 +5,6 @@ import { adminAPI, bookingsAPI } from "../../services/api";
 import { formatAUD } from "../../utils/pricingUtils";
 import {
   Calendar,
-  Clock,
-  MapPin,
-  Phone,
-  User,
-  MessageSquare,
   CheckCircle,
   XCircle,
   AlertCircle,
@@ -19,24 +14,21 @@ import {
   Download,
   FileText,
   Search,
-  Navigation,
 } from "lucide-react";
 import Button from "../ui/Button";
 import Card from "../ui/Card";
 import Badge from "../ui/Badge";
 import Modal from "../ui/Modal";
 import LoadingSpinner from "../ui/LoadingSpinner";
-import { ProviderLocationMap, StatusTracker } from "../ui";
 
 const BookingManagementTab = ({ stats = {} }) => {
   const navigate = useNavigate();
   const { showError, showSuccess } = useToast();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedBooking, setSelectedBooking] = useState(null);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [bookingLogs, setBookingLogs] = useState([]);
   const [showLogsModal, setShowLogsModal] = useState(false);
+  const [selectedBookingForLogs, setSelectedBookingForLogs] = useState(null);
   const [filters, setFilters] = useState({
     status: "all",
     search: "",
@@ -83,15 +75,7 @@ const BookingManagementTab = ({ stats = {} }) => {
   }, [filters.status, filters.search]);
 
   const handleViewDetails = async (booking) => {
-    try {
-      const response = await adminAPI.getBookingDetails(booking._id);
-      setSelectedBooking(response.data?.booking || booking);
-      setShowDetailsModal(true);
-    } catch (error) {
-      console.error("Error fetching booking details:", error);
-      setSelectedBooking(booking);
-      setShowDetailsModal(true);
-    }
+    navigate(`/admin/bookings/${booking._id}`);
   };
 
   const fetchBookingLogs = async (bookingId) => {
@@ -99,6 +83,8 @@ const BookingManagementTab = ({ stats = {} }) => {
       const response = await bookingsAPI.getBookingLogs(bookingId);
       if (response.success) {
         setBookingLogs(response.logs || []);
+        const booking = bookings.find((b) => b._id === bookingId);
+        setSelectedBookingForLogs(booking);
         setShowLogsModal(true);
       } else {
         showError(response.message || "Failed to fetch booking logs");
@@ -405,371 +391,6 @@ const BookingManagementTab = ({ stats = {} }) => {
         )}
       </Card>
 
-      {/* Booking Details Modal */}
-      {selectedBooking && (
-        <Modal
-          isOpen={showDetailsModal}
-          onClose={() => setShowDetailsModal(false)}
-          title="Booking Details"
-          size="lg"
-        >
-          <div className="space-y-6">
-            {/* Invoice Table */}
-            <div>
-              <h4 className="text-sm font-medium text-gray-500 mb-2">
-                Invoice Details
-              </h4>
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse border border-gray-300 bg-white">
-                  <thead>
-                    <tr className="bg-blue-600 text-white">
-                      <th className="border border-gray-300 px-4 py-2 text-left text-xs font-semibold">
-                        Support Item #
-                      </th>
-                      <th className="border border-gray-300 px-4 py-2 text-left text-xs font-semibold">
-                        Support Item Name
-                      </th>
-                      <th className="border border-gray-300 px-4 py-2 text-left text-xs font-semibold">
-                        Reg. Group
-                      </th>
-                      <th className="border border-gray-300 px-4 py-2 text-left text-xs font-semibold">
-                        Day & Time
-                      </th>
-                      <th className="border border-gray-300 px-4 py-2 text-center text-xs font-semibold">
-                        Hours
-                      </th>
-                      <th className="border border-gray-300 px-4 py-2 text-right text-xs font-semibold">
-                        Pricing
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td className="border border-gray-300 px-4 py-2 text-xs">
-                        {selectedBooking.serviceDetails?.supportItemNumber ||
-                          "N/A"}
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2 text-xs">
-                        {selectedBooking.serviceDetails?.serviceName ||
-                          selectedBooking.serviceTitle ||
-                          "Service"}
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2 text-xs">
-                        {selectedBooking.serviceDetails?.registrationGroup ||
-                          "N/A"}
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2 text-xs">
-                        <div>
-                          {selectedBooking.scheduledDate
-                            ? new Date(
-                                selectedBooking.scheduledDate
-                              ).toLocaleDateString("en-AU", {
-                                weekday: "long",
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric",
-                              })
-                            : "Not scheduled"}
-                        </div>
-                        <div className="text-gray-600">
-                          {selectedBooking.scheduledTime || "Not set"}
-                        </div>
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2 text-xs text-center">
-                        {selectedBooking.serviceHours ||
-                          (selectedBooking.bookingType === "dateRange"
-                            ? "Multiple"
-                            : "N/A")}
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2 text-xs text-right font-semibold">
-                        {selectedBooking.totalAmount !== null &&
-                        selectedBooking.totalAmount !== undefined
-                          ? formatAUD(selectedBooking.totalAmount)
-                          : "N/A"}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-                <div className="mt-4 text-right">
-                  <p className="text-sm font-semibold text-gray-900">
-                    Total Amount:{" "}
-                    {selectedBooking.totalAmount !== null &&
-                    selectedBooking.totalAmount !== undefined
-                      ? formatAUD(selectedBooking.totalAmount)
-                      : "Price not available"}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    All prices in Australian Dollars (AUD)
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Customer Info */}
-            <div>
-              <h4 className="text-sm font-medium text-gray-500 mb-2 flex items-center">
-                <User className="w-4 h-4 mr-2" />
-                Customer Information
-              </h4>
-              <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-                <div>
-                  <span className="text-sm font-medium text-gray-600">
-                    Name:
-                  </span>
-                  <p className="text-gray-900">
-                    {selectedBooking.customerInfo?.name ||
-                      selectedBooking.patientInfo?.name ||
-                      selectedBooking.user?.name ||
-                      "N/A"}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-sm font-medium text-gray-600">
-                    Age:
-                  </span>
-                  <p className="text-gray-900">
-                    {selectedBooking.customerInfo?.age ||
-                      selectedBooking.patientInfo?.age ||
-                      "N/A"}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm font-medium text-gray-600">
-                    Phone:
-                  </span>
-                  <p className="text-gray-900">
-                    {selectedBooking.customerInfo?.phone ||
-                      selectedBooking.patientInfo?.phone ||
-                      selectedBooking.user?.phone ||
-                      "N/A"}
-                  </p>
-                </div>
-                {selectedBooking.user?.email && (
-                  <div className="flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm font-medium text-gray-600">
-                      Email:
-                    </span>
-                    <p className="text-gray-900">
-                      {selectedBooking.user.email}
-                    </p>
-                  </div>
-                )}
-                <div>
-                  <span className="text-sm font-medium text-gray-600">
-                    Emergency Contact:
-                  </span>
-                  <p className="text-gray-900">
-                    {selectedBooking.customerInfo?.emergencyContact ||
-                      selectedBooking.patientInfo?.emergencyContact ||
-                      "N/A"}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Schedule */}
-            <div>
-              <h4 className="text-sm font-medium text-gray-500 mb-2 flex items-center">
-                <Calendar className="w-4 h-4 mr-2" />
-                Schedule & Location
-              </h4>
-              <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm font-medium text-gray-600">
-                    Date:
-                  </span>
-                  <p className="text-gray-900">
-                    {formatDate(selectedBooking.scheduledDate)}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm font-medium text-gray-600">
-                    Time:
-                  </span>
-                  <p className="text-gray-900">
-                    {selectedBooking.scheduledTime}
-                  </p>
-                </div>
-                {selectedBooking.address && (
-                  <div className="flex items-start gap-2">
-                    <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
-                    <div>
-                      <span className="text-sm font-medium text-gray-600">
-                        Address:
-                      </span>
-                      <p className="text-gray-900">
-                        {selectedBooking.address.street}
-                        {selectedBooking.address.city && (
-                          <>, {selectedBooking.address.city}</>
-                        )}
-                        {selectedBooking.address.state && (
-                          <>, {selectedBooking.address.state}</>
-                        )}
-                        {selectedBooking.address.pincode && (
-                          <> {selectedBooking.address.pincode}</>
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Provider */}
-            {selectedBooking.provider && (
-              <div>
-                <h4 className="text-sm font-medium text-gray-500 mb-2">
-                  Assigned Provider
-                </h4>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-gray-900">
-                    {selectedBooking.provider?.name || "Not assigned"}
-                  </p>
-                  {selectedBooking.provider?.email && (
-                    <p className="text-sm text-gray-600">
-                      {selectedBooking.provider.email}
-                    </p>
-                  )}
-                  {selectedBooking.provider?.professionalInfo
-                    ?.specialization && (
-                    <p className="text-sm text-gray-600">
-                      Service Type:{" "}
-                      {selectedBooking.provider.professionalInfo.specialization
-                        .replace(/-/g, " ")
-                        .replace(/\b\w/g, (l) => l.toUpperCase())}
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Service Requirements */}
-            {(selectedBooking.serviceRequirements ||
-              selectedBooking.symptoms ||
-              selectedBooking.notes) && (
-              <div>
-                <h4 className="text-sm font-medium text-gray-500 mb-2">
-                  Additional Information
-                </h4>
-                <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-                  {(selectedBooking.serviceRequirements ||
-                    selectedBooking.symptoms) && (
-                    <div>
-                      <span className="text-sm font-medium text-gray-600">
-                        Service Requirements:
-                      </span>
-                      <p className="text-gray-900">
-                        {selectedBooking.serviceRequirements ||
-                          selectedBooking.symptoms}
-                      </p>
-                    </div>
-                  )}
-                  {selectedBooking.notes && (
-                    <div>
-                      <span className="text-sm font-medium text-gray-600">
-                        Notes:
-                      </span>
-                      <p className="text-gray-900">{selectedBooking.notes}</p>
-                    </div>
-                  )}
-                  {selectedBooking.providerNotes && (
-                    <div>
-                      <span className="text-sm font-medium text-gray-600">
-                        Provider Notes:
-                      </span>
-                      <p className="text-gray-900 bg-blue-50 p-2 rounded mt-1">
-                        {selectedBooking.providerNotes}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Status Tracker */}
-            <div>
-              <StatusTracker
-                status={
-                  selectedBooking.status === "provider-on-way"
-                    ? "on_the_way"
-                    : selectedBooking.status === "in-progress" ||
-                      selectedBooking.status === "work-started"
-                    ? "on_the_way"
-                    : selectedBooking.status === "completed"
-                    ? "completed"
-                    : "pending"
-                }
-                stages={[
-                  { key: "pending", label: "Pending" },
-                  { key: "on_the_way", label: "En Route" },
-                  { key: "completed", label: "Completed" },
-                ]}
-              />
-            </div>
-
-            {/* Provider Location Map - Show when provider is assigned and tracking */}
-            {(selectedBooking.status === "provider-on-way" ||
-              selectedBooking.status === "provider-started" ||
-              selectedBooking.status === "work-started" ||
-              selectedBooking.status === "in-progress" ||
-              selectedBooking.status === "completed") &&
-              (selectedBooking.providerLocation?.isTracking ||
-                selectedBooking.provider) && (
-                <div>
-                  <h4 className="text-sm font-medium text-gray-500 mb-3 flex items-center">
-                    <Navigation className="h-4 w-4 mr-2" />
-                    Provider Location Tracking
-                  </h4>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <div className="rounded-lg overflow-hidden border border-gray-200">
-                      <ProviderLocationMap
-                        providerLocation={selectedBooking.providerLocation}
-                        customerAddress={selectedBooking.address}
-                        status={selectedBooking.status}
-                        bookingId={selectedBooking._id}
-                        providerName={
-                          selectedBooking.provider?.name || "Service Provider"
-                        }
-                        height="400px"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-            <div className="flex justify-between pt-4 border-t">
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => downloadInvoice(selectedBooking._id, false)}
-                >
-                  Download Invoice
-                </Button>
-                {selectedBooking.status === "completed" &&
-                selectedBooking.eSignature?.signature ? (
-                  <Button
-                    variant="outline"
-                    onClick={() => downloadInvoice(selectedBooking._id, true)}
-                  >
-                    Download E-Signed Invoice
-                  </Button>
-                ) : null}
-              </div>
-              <Button
-                variant="outline"
-                onClick={() => setShowDetailsModal(false)}
-              >
-                Close
-              </Button>
-            </div>
-          </div>
-        </Modal>
-      )}
-
       {/* Booking Logs Modal */}
       <Modal
         isOpen={showLogsModal}
@@ -780,7 +401,7 @@ const BookingManagementTab = ({ stats = {} }) => {
         <div className="space-y-4">
           <div className="text-sm text-gray-600 mb-4">
             Showing status change history for booking #
-            {selectedBooking?.bookingNumber}
+            {selectedBookingForLogs?.bookingNumber}
           </div>
 
           {bookingLogs.length > 0 ? (

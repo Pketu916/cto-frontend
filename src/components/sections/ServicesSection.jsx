@@ -1,12 +1,12 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { ServiceGrid } from "../services";
-import { Button } from "../ui";
+import { Button, CustomDropdown } from "../ui";
 import { ServiceBookingForm } from "../forms";
 import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../../contexts/ToastContext";
 import { useNavigate } from "react-router-dom";
 import { bookingsAPI } from "../../services/api";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Filter } from "lucide-react";
 
 const ServicesSection = ({
   services = [],
@@ -186,34 +186,38 @@ const ServicesSection = ({
         </p>
       </div>
 
-      {/* Category Filter */}
+      {/* Category Filter Dropdown */}
       {availableCategories.length > 0 && (
-        <div className="mb-12">
-          <div className="flex flex-wrap justify-center gap-3 text-sm">
-            <button
-              onClick={() => setSelectedCategory("all")}
-              className={`px-4 py-2 rounded-full font-medium transition-all duration-200 ${
-                selectedCategory === "all"
-                  ? "bg-primary text-white shadow-lg transform scale-105"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              All Services ({services.length})
-            </button>
-            {availableCategories.map((category) => (
-              <button
-                key={category.value}
-                onClick={() => setSelectedCategory(category.value)}
-                className={`px-6 py-2 rounded-full font-medium transition-all duration-200 ${
-                  selectedCategory === category.value
-                    ? "bg-primary text-white shadow-lg transform scale-105"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                {category.label} (
-                {services.filter((s) => s.category === category.value).length})
-              </button>
-            ))}
+        <div className="mb-12 flex justify-center">
+          <div className="w-full max-w-md">
+            <CustomDropdown
+              label={
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 bg-accent/10 rounded-lg">
+                    <Filter className="h-5 w-5 text-accent" />
+                  </div>
+                  <span className="text-base font-semibold text-gray-800">
+                    Filter by Category
+                  </span>
+                </div>
+              }
+              value={selectedCategory}
+              onChange={(value) => setSelectedCategory(value)}
+              placeholder="Select a category"
+              options={[
+                {
+                  value: "all",
+                  label: `All Services (${services.length})`,
+                },
+                ...availableCategories.map((category) => ({
+                  value: category.value,
+                  label: `${category.label} (${
+                    services.filter((s) => s.category === category.value).length
+                  })`,
+                })),
+              ]}
+              className="w-full"
+            />
           </div>
         </div>
       )}

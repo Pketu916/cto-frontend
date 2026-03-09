@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../../contexts/ToastContext";
-import { useSocket } from "../../contexts/SocketContext";
 import {
   ArrowLeft,
   Calendar,
@@ -14,38 +13,33 @@ import {
   FileText,
   Download,
   Navigation,
-  History,
   AlertCircle,
   XCircle,
   CheckCircle,
+  History,
 } from "lucide-react";
 import Button from "../../components/ui/Button";
 import Card from "../../components/ui/Card";
 import Badge from "../../components/ui/Badge";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
-import ProviderStatusUpdateCard from "../../components/dashboard/ProviderStatusUpdateCard";
-import LocationTrackingManager from "../../components/dashboard/LocationTrackingManager";
+import Modal from "../../components/ui/Modal";
 import {
   ProviderLocationMap,
   StatusTracker,
   StatusDot,
 } from "../../components/ui";
-import ESignatureModal from "../../components/ui/ESignatureModal";
-import api, { bookingsAPI } from "../../services/api";
-import Modal from "../../components/ui/Modal";
+import { adminAPI, bookingsAPI } from "../../services/api";
 import { formatAUD } from "../../utils/pricingUtils";
 
-const ProviderBookingDetails = () => {
+const AdminBookingDetails = () => {
   const { bookingId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { showSuccess, showError } = useToast();
-  const { socket } = useSocket();
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [bookingLogs, setBookingLogs] = useState([]);
   const [showLogsModal, setShowLogsModal] = useState(false);
-  const [showESignModal, setShowESignModal] = useState(false);
 
   useEffect(() => {
     if (bookingId) {
@@ -54,166 +48,22 @@ const ProviderBookingDetails = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bookingId]);
 
-  useEffect(() => {
-    if (!socket || !bookingId) return;
-
-    const handleLocationUpdateWrapper = (data) => {
-      if (
-        data.bookingId === bookingId ||
-        data.bookingNumber === booking?.bookingNumber
-      ) {
-        setBooking((prev) => ({
-          ...prev,
-          providerLocation: {
-            ...prev?.providerLocation,
-            ...data.location,
-            isTracking: true,
-          },
-        }));
-      }
-    };
-
-    const handleStatusUpdateWrapper = (data) => {
-      if (
-        data.bookingId === bookingId ||
-        data.bookingNumber === booking?.bookingNumber
-      ) {
-        // Update booking immediately
-        setBooking((prev) => {
-          if (!prev) return prev;
-
-          // Determine if tracking should be active
-          const shouldTrack =
-            data.status === "provider-on-way" ||
-            data.status === "work-started" ||
-            data.status === "provider-started" ||
-            data.status === "in-progress";
-
-          const isTracking = shouldTrack
-            ? prev.providerLocation?.isTracking ?? false
-            : false;
-
-          return {
-            ...prev,
-            status: data.status,
-            providerNotes: data.providerNotes || prev.providerNotes,
-            providerLocation: {
-              ...prev.providerLocation,
-              isTracking: isTracking,
-            },
-          };
-        });
-
-        // Show notification
-        const statusMessages = {
-          pending: "Status updated to pending",
-          confirmed: "Booking confirmed",
-          "provider-started": "Provider started",
-          "provider-on-way": "Provider is on the way",
-          "work-started": "Work started",
-          "in-progress": "Service in progress",
-          completed: "Service completed",
-          cancelled: "Booking cancelled",
-        };
-
-        const message =
-          statusMessages[data.status] || `Status updated to ${data.status}`;
-        showSuccess(`Booking ${data.bookingNumber}: ${message}`);
-
-        // Refresh booking data after a short delay
-        setTimeout(() => {
-          fetchBooking();
-        }, 500);
-      }
-    };
-
-    socket.on("provider-location-updated", handleLocationUpdateWrapper);
-    socket.on("booking-status-updated", handleStatusUpdateWrapper);
-
-    return () => {
-      socket.off("provider-location-updated", handleLocationUpdateWrapper);
-      socket.off("booking-status-updated", handleStatusUpdateWrapper);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [socket, bookingId, booking?.bookingNumber]);
-
   const fetchBooking = async () => {
     try {
       setLoading(true);
-      // Try to get booking from provider bookings list first (has full data)
-      try {
-        const listResponse = await api.get(`/bookings/provider`);
-        if (listResponse.data.success) {
-          const booking = listResponse.data.bookings.find(
-            (b) => b._id === bookingId
-          );
-          if (booking) {
-            console.log("Booking from list:", booking);
-            setBooking(booking);
-            return;
-          }
-        }
-      } catch (listError) {
-        console.log("Could not fetch from list, trying details endpoint");
-      }
-
-      // Fallback to getBookingDetails API
-      const detailResponse = await bookingsAPI.getBookingDetails(bookingId);
-      if (detailResponse.success && detailResponse.booking) {
-        console.log("Booking from details:", detailResponse.booking);
-        setBooking(detailResponse.booking);
+      const response = await adminAPI.getBookingDetails(bookingId);
+      if (response.success && response.data?.booking) {
+        setBooking(response.data.booking);
       } else {
         showError("Booking not found");
-        navigate("/provider/dashboard");
+        navigate("/admin/dashboard");
       }
     } catch (error) {
       console.error("Error fetching booking:", error);
       showError("Failed to load booking details");
-      navigate("/provider/dashboard");
+      navigate("/admin/dashboard");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const updateBookingStatus = async (bookingId, status, providerNotes) => {
-    try {
-      if (status === "completed") {
-        setShowESignModal(true);
-        return;
-      }
-
-      const response = await bookingsAPI.updateBookingStatus(
-        bookingId,
-        status,
-        providerNotes,
-        user._id,
-        user.name
-      );
-
-      if (response.success) {
-        showSuccess(`Booking status updated to ${status}`);
-        fetchBooking();
-      } else {
-        showError(response.message || "Failed to update booking status");
-      }
-    } catch (error) {
-      console.error("Error updating booking status:", error);
-      showError("Failed to update booking status");
-    }
-  };
-
-  const handleLocationTrackingStart = async (bookingId, location) => {
-    try {
-      await bookingsAPI.updateProviderLocation(
-        bookingId,
-        location.latitude,
-        location.longitude
-      );
-      showSuccess("Location tracking started");
-      fetchBooking();
-    } catch (error) {
-      console.error("Error starting location tracking:", error);
-      showError("Failed to start location tracking");
     }
   };
 
@@ -223,9 +73,11 @@ const ProviderBookingDetails = () => {
       if (response.success) {
         setBookingLogs(response.logs || []);
         setShowLogsModal(true);
+      } else {
+        showError(response.message || "Failed to fetch booking logs");
       }
     } catch (error) {
-      console.error("Error fetching logs:", error);
+      console.error("Error fetching booking logs:", error);
       showError("Failed to fetch booking logs");
     }
   };
@@ -301,7 +153,7 @@ const ProviderBookingDetails = () => {
           <h2 className="text-xl font-semibold text-gray-900 mb-2">
             Booking Not Found
           </h2>
-          <Button onClick={() => navigate("/provider/dashboard")}>
+          <Button onClick={() => navigate("/admin/dashboard")}>
             Back to Dashboard
           </Button>
         </Card>
@@ -309,13 +161,15 @@ const ProviderBookingDetails = () => {
     );
   }
 
+  const StatusIcon = getStatusIcon(booking.status);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-6">
           <Button
-            onClick={() => navigate("/provider/dashboard")}
+            onClick={() => navigate("/admin/dashboard")}
             variant="outline"
             size="sm"
             className="mb-4"
@@ -328,13 +182,19 @@ const ProviderBookingDetails = () => {
               <h1 className="text-2xl font-bold text-gray-900">
                 Booking Details
               </h1>
-              <p className="text-gray-600">#{booking.bookingNumber}</p>
+              <p className="text-gray-600">Booking #{booking.bookingNumber}</p>
             </div>
-            <StatusDot
-              status={booking.status}
-              bookingNumber={booking.bookingNumber}
-              size="lg"
-            />
+            <div className="flex items-center gap-3">
+              <StatusDot
+                status={booking.status}
+                bookingNumber={booking.bookingNumber}
+                size="lg"
+              />
+              <Badge color={getStatusColor(booking.status)}>
+                <StatusIcon className="h-3 w-3 mr-1" />
+                {booking.status.replace("-", " ")}
+              </Badge>
+            </div>
           </div>
         </div>
 
@@ -348,15 +208,16 @@ const ProviderBookingDetails = () => {
                 size="sm"
                 title="View Status History"
               >
-                <History className="h-4 w-4" />
+                <History className="h-4 w-4 mr-2" />
+                View History
               </Button>
               <Button
                 onClick={() => downloadInvoice(false)}
                 variant="outline"
                 size="sm"
-                title="Download Invoice"
               >
-                <Download className="h-4 w-4" />
+                <Download className="h-4 w-4 mr-2" />
+                Download Invoice
               </Button>
               {booking.status === "completed" &&
                 booking.eSignature?.signature && (
@@ -364,15 +225,12 @@ const ProviderBookingDetails = () => {
                     onClick={() => downloadInvoice(true)}
                     variant="outline"
                     size="sm"
-                    title="Download E-Signed Invoice"
                   >
-                    <FileText className="h-4 w-4" />
+                    <FileText className="h-4 w-4 mr-2" />
+                    Download E-Signed Invoice
                   </Button>
                 )}
             </div>
-            <Badge color={getStatusColor(booking.status)}>
-              {booking.status.replace("-", " ")}
-            </Badge>
           </div>
         </Card>
 
@@ -399,36 +257,7 @@ const ProviderBookingDetails = () => {
             />
           </Card>
 
-          {/* Status Update Card - Only show if not completed */}
-          {booking.status !== "completed" && (
-            <Card padding="lg">
-              <ProviderStatusUpdateCard
-                booking={booking}
-                onStatusUpdate={updateBookingStatus}
-                onLocationTrackingStart={handleLocationTrackingStart}
-              />
-            </Card>
-          )}
-
-          {/* Location Tracking */}
-          {(booking.status === "provider-on-way" ||
-            booking.status === "provider-started" ||
-            booking.status === "work-started" ||
-            booking.status === "in-progress") && (
-            <Card padding="lg">
-              <LocationTrackingManager
-                booking={booking}
-                onTrackingUpdate={(updatedLocation) => {
-                  setBooking((prev) => ({
-                    ...prev,
-                    providerLocation: updatedLocation,
-                  }));
-                }}
-              />
-            </Card>
-          )}
-
-          {/* Provider Location Map */}
+          {/* Provider Location Map - Show when provider is assigned and tracking */}
           {(booking.status === "provider-on-way" ||
             booking.status === "provider-started" ||
             booking.status === "work-started" ||
@@ -440,7 +269,7 @@ const ProviderBookingDetails = () => {
                   <div className="flex items-center gap-2">
                     <Navigation className="h-5 w-5 text-primary" />
                     <h3 className="font-semibold text-gray-900">
-                      Provider Location
+                      Provider Location Tracking
                     </h3>
                     <div className="ml-auto flex items-center gap-2">
                       <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
@@ -654,6 +483,49 @@ const ProviderBookingDetails = () => {
               </table>
             </div>
           </Card>
+
+          {/* Provider Information */}
+          {booking.provider && (
+            <Card padding="lg">
+              <h3 className="font-semibold text-gray-900 mb-4">
+                Provider Information
+              </h3>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse border border-gray-300">
+                  <thead>
+                    <tr className="bg-blue-600 text-white">
+                      <th className="border border-gray-300 px-4 py-2 text-left text-xs font-semibold">
+                        Name
+                      </th>
+                      <th className="border border-gray-300 px-4 py-2 text-left text-xs font-semibold">
+                        Email
+                      </th>
+                      <th className="border border-gray-300 px-4 py-2 text-left text-xs font-semibold">
+                        Specialization
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="bg-white hover:bg-gray-50">
+                      <td className="border border-gray-300 px-4 py-2 text-xs">
+                        {booking.provider?.name || "N/A"}
+                      </td>
+                      <td className="border border-gray-300 px-4 py-2 text-xs">
+                        {booking.provider?.email || "N/A"}
+                      </td>
+                      <td className="border border-gray-300 px-4 py-2 text-xs">
+                        {booking.provider?.professionalInfo?.specialization
+                          ? booking.provider.professionalInfo.specialization
+                              .replace(/-/g, " ")
+                              .replace(/\b\w/g, (l) => l.toUpperCase())
+                          : "N/A"}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
         </div>
       </div>
 
@@ -715,21 +587,8 @@ const ProviderBookingDetails = () => {
           )}
         </div>
       </Modal>
-
-      {/* E-Signature Modal */}
-      {booking && (
-        <ESignatureModal
-          isOpen={showESignModal}
-          onClose={() => setShowESignModal(false)}
-          bookingId={booking._id}
-          onSigned={() => {
-            setShowESignModal(false);
-            fetchBooking();
-          }}
-        />
-      )}
     </div>
   );
 };
 
-export default ProviderBookingDetails;
+export default AdminBookingDetails;

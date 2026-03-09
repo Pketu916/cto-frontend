@@ -23,6 +23,7 @@ import UserBookingDetails from "./pages/dashboard/UserBookingDetails";
 import ProviderDashboard from "./pages/dashboard/ProviderDashboard";
 import ProviderBookingDetails from "./pages/dashboard/ProviderBookingDetails";
 import AdminDashboard from "./pages/dashboard/AdminDashboard";
+import AdminBookingDetails from "./pages/dashboard/AdminBookingDetails";
 import BookingConfirmation from "./pages/BookingConfirmation";
 import Booking from "./pages/Booking";
 import Tracking from "./pages/Tracking";
@@ -108,6 +109,14 @@ function App() {
                   element={
                     <ProtectedRoute userType="admin">
                       <AdminDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/bookings/:bookingId"
+                  element={
+                    <ProtectedRoute userType="admin">
+                      <AdminBookingDetails />
                     </ProtectedRoute>
                   }
                 />

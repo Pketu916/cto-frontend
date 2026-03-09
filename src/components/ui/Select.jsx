@@ -34,11 +34,12 @@ const Select = forwardRef(
           id={name}
           name={name}
           disabled={disabled}
-          className={`w-full px-3 py-1.5 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm ${
+          className={`w-full px-3 py-1.5 border rounded-md shadow-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm ${
             error
               ? "border-red-500 focus:ring-red-500 focus:border-red-500"
               : "border-gray-300"
           } ${disabled ? "bg-gray-100 cursor-not-allowed" : "bg-white"}`}
+          style={{ outline: "none" }}
           {...props}
         >
           <option value="" disabled>
